@@ -13,6 +13,16 @@ enum NavigationItem: String, CaseIterable {
     case settings = "Settings"
 
     var id: String { self.rawValue }
+    var systemImageName: String {
+        switch self {
+        case .decks:
+            return "rectangle.stack" // Example icon for Decks
+        case .notes:
+            return "note.text" // Example icon for Notes
+        case .settings:
+            return "gear" // Example icon for Settings
+        }
+    }
 }
 
 struct SidebarView: View {
@@ -22,18 +32,16 @@ struct SidebarView: View {
         List {
             ForEach(NavigationItem.allCases, id: \.id) { item in
                 if #available(macOS 11.0, *) {
-                    // macOS specific NavigationLink
                     NavigationLink(value: item) {
-                        Label(item.rawValue, systemImage: "circle")
+                        Label(item.rawValue, systemImage: item.systemImageName)
                     }
                 } else {
-                    // iOS specific NavigationLink
                     NavigationLink(
                         destination: navigationDestination(for: item),
                         tag: item,
-                        selection: Binding($selection) // Convert to optional binding
+                        selection: Binding($selection)
                     ) {
-                        Label(item.rawValue, systemImage: "circle")
+                        Label(item.rawValue, systemImage: item.systemImageName)
                     }
                 }
             }
@@ -54,5 +62,3 @@ struct SidebarView: View {
         }
     }
 }
-
-
