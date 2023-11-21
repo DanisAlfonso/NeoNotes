@@ -210,7 +210,8 @@ struct DeckCardView: View {
 let gradientOptions: [String: Gradient] = [
     "Sunset": Gradient(colors: [Color.red.opacity(0.7), Color.orange.opacity(0.7)]),
     "Ocean": Gradient(colors: [Color.green.opacity(0.7), Color.blue.opacity(0.7)]),
-    // Add other gradients here...
-    "Default": Gradient(colors: [Color.blue.opacity(0.7), Color.purple.opacity(0.7)]) // Make sure this exists
+    "Orchid": Gradient(colors: [Color.purple.opacity(0.7), Color.pink.opacity(0.7)]),
+    "Forest": Gradient(colors: [Color.green.opacity(0.8), Color.brown.opacity(0.8)]),
+    "Berry": Gradient(colors: [Color.pink.opacity(0.7), Color.purple.opacity(0.7)]),
+    "Default": Gradient(colors: [Color.blue.opacity(0.7), Color.purple.opacity(0.7)]) 
 ]
-
