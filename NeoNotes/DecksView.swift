@@ -52,34 +52,36 @@ struct AddDeckView: View {
     @State private var deckName = ""
 
     var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("Deck Name")) {
-                    TextField("Name", text: $deckName)
+            VStack {
+                HStack {
+                    Text("New Deck")
+                        .font(.headline)
+                        .padding()
                 }
-                Section {
-                    Button("Save") {
-                        addNewDeck()
-                        isPresented = false
-                    }
-                }
-            }
-            .navigationTitle("New Deck")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+
+                Divider()
+
+                TextField("Deck Name", text: $deckName)
+                    .textFieldStyle(.roundedBorder)
+                    .padding()
+                HStack {
                     Button("Cancel") {
                         isPresented = false
                     }
-                }
-                ToolbarItem(placement: .confirmationAction) {
+                    .padding()
+                    .buttonStyle(.bordered)
+                    
                     Button("Save") {
                         addNewDeck()
                         isPresented = false
                     }
+                    .buttonStyle(.borderedProminent)
+                    .padding()
                 }
             }
+            .frame(width: 300, height: 200)
+            .padding()
         }
-    }
 
     private func addNewDeck() {
         withAnimation {
@@ -128,7 +130,7 @@ struct DeckCardView: View {
         .background(LinearGradient(gradient: Gradient(colors: [Color.blue.opacity(0.7), Color.purple.opacity(0.7)]), startPoint: .topLeading, endPoint: .bottomTrailing))
         .cornerRadius(10)
         .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
-        .scaleEffect(isHovered ? 1.05 : 1.0) // Scale the card slightly when hovered
+        .scaleEffect(isHovered ? 1.04 : 1.0) // Scale the card slightly when hovered
             .animation(.easeInOut(duration: 0.2), value: isHovered) // Animate the scale effect
             .onHover { hover in
                 isHovered = hover
