@@ -100,7 +100,7 @@ struct AddDeckView: View {
 }
 
 struct DeckCardView: View {
-    let deck: Deck
+    @ObservedObject var deck: Deck
     @Environment(\.managedObjectContext) private var viewContext
     @State private var isHovered = false
     @State private var showingRenameAlert = false
@@ -130,7 +130,7 @@ struct DeckCardView: View {
             .padding([.bottom, .horizontal])
         }
         .frame(minHeight: 180)
-        .background(LinearGradient(gradient: Gradient(colors: [Color.blue.opacity(0.7), Color.purple.opacity(0.7)]), startPoint: .topLeading, endPoint: .bottomTrailing))
+        .background(gradientView(for: deck.backgroundName))
         .cornerRadius(10)
         .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
         .scaleEffect(isHovered ? 1.04 : 1.0) // Scale the card slightly when hovered
@@ -148,6 +148,13 @@ struct DeckCardView: View {
                 deleteDeck(deck)
             }) {
                 Label("Delete \(deck.name ?? "Deck")", systemImage: "trash")
+            }
+            Menu("Change Background") {
+                ForEach(gradientOptions.keys.sorted(), id: \.self) { key in
+                    Button(key) {
+                        changeBackground(to: key)
+                    }
+                }
             }
         }
         .alert("Rename Deck", isPresented: $showingRenameAlert) {
@@ -183,4 +190,27 @@ struct DeckCardView: View {
             }
         }
     }
+    
+    private func gradientView(for name: String?) -> LinearGradient {
+        // Safely unwrap and return the gradient, or return a default gradient if nil
+        if let name = name, let gradient = gradientOptions[name] {
+            return LinearGradient(gradient: gradient, startPoint: .topLeading, endPoint: .bottomTrailing)
+        } else {
+            // Provide a default gradient if `name` is nil or doesn't match
+            return LinearGradient(gradient: gradientOptions["Default"]!, startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+    }
+
+    private func changeBackground(to name: String) {
+        deck.backgroundName = name
+        try? viewContext.save()
+    }
 }
+
+let gradientOptions: [String: Gradient] = [
+    "Sunset": Gradient(colors: [Color.red.opacity(0.7), Color.orange.opacity(0.7)]),
+    "Ocean": Gradient(colors: [Color.green.opacity(0.7), Color.blue.opacity(0.7)]),
+    // Add other gradients here...
+    "Default": Gradient(colors: [Color.blue.opacity(0.7), Color.purple.opacity(0.7)]) // Make sure this exists
+]
+
