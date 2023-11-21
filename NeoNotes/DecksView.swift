@@ -101,6 +101,7 @@ struct AddDeckView: View {
 
 struct DeckCardView: View {
     let deck: Deck
+    @Environment(\.managedObjectContext) private var viewContext
     @State private var isHovered = false
 
     var body: some View {
@@ -135,6 +136,26 @@ struct DeckCardView: View {
             .onHover { hover in
                 isHovered = hover
             }
-        .padding() // Add space between the cards
+        .padding()
+        .contextMenu {
+            Button(action: {
+                deleteDeck(deck)
+            }) {
+                Label("Delete \(deck.name ?? "Deck")", systemImage: "trash")
+            }
+        }
+    }
+    
+    private func deleteDeck(_ deck: Deck) {
+        withAnimation {
+            viewContext.delete(deck)
+            
+            do {
+                try viewContext.save()
+            } catch {
+                // Handle the error appropriately
+                print(error.localizedDescription)
+            }
+        }
     }
 }
