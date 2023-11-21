@@ -17,11 +17,11 @@ struct DecksView: View {
     private var decks: FetchedResults<Deck>
 
     var body: some View {
-    let columns = [
-        GridItem(.flexible(minimum: 160)),
-        GridItem(.flexible(minimum: 160))
-    ]
-
+        let columns = [
+            GridItem(.flexible(minimum: 160)),
+            GridItem(.flexible(minimum: 160))
+        ]
+        
         ScrollView {
             LazyVGrid(columns: columns, spacing: 30) {
                 ForEach(decks) { deck in
@@ -213,5 +213,5 @@ let gradientOptions: [String: Gradient] = [
     "Orchid": Gradient(colors: [Color.purple.opacity(0.7), Color.pink.opacity(0.7)]),
     "Forest": Gradient(colors: [Color.green.opacity(0.8), Color.brown.opacity(0.8)]),
     "Berry": Gradient(colors: [Color.pink.opacity(0.7), Color.purple.opacity(0.7)]),
-    "Default": Gradient(colors: [Color.blue.opacity(0.7), Color.purple.opacity(0.7)]) 
+    "Default": Gradient(colors: [Color.blue.opacity(0.7), Color.purple.opacity(0.7)])
 ]
