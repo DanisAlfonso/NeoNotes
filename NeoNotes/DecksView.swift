@@ -133,8 +133,8 @@ struct DeckCardView: View {
         .background(gradientView(for: deck.backgroundName))
         .cornerRadius(10)
         .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
-        .scaleEffect(isHovered ? 1.04 : 1.0) // Scale the card slightly when hovered
-            .animation(.easeInOut(duration: 0.2), value: isHovered) // Animate the scale effect
+        .scaleEffect(isHovered ? 1.03 : 1.0) // Scale the card slightly when hovered
+            .animation(.easeInOut(duration: 0.3), value: isHovered) // Animate the scale effect
             .onHover { hover in
                 isHovered = hover
             }
