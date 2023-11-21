@@ -103,6 +103,8 @@ struct DeckCardView: View {
     let deck: Deck
     @Environment(\.managedObjectContext) private var viewContext
     @State private var isHovered = false
+    @State private var showingRenameAlert = false
+    @State private var newName = ""
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -138,11 +140,22 @@ struct DeckCardView: View {
             }
         .padding()
         .contextMenu {
+            Button("Rename \(deck.name ?? "Deck")") {
+                self.newName = deck.name ?? ""
+                self.showingRenameAlert = true
+            }
             Button(action: {
                 deleteDeck(deck)
             }) {
                 Label("Delete \(deck.name ?? "Deck")", systemImage: "trash")
             }
+        }
+        .alert("Rename Deck", isPresented: $showingRenameAlert) {
+            TextField("New name", text: $newName)
+            Button("Save", action: renameDeck)
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Enter a new name for your deck.")
         }
     }
     
@@ -154,6 +167,18 @@ struct DeckCardView: View {
                 try viewContext.save()
             } catch {
                 // Handle the error appropriately
+                print(error.localizedDescription)
+            }
+        }
+    }
+    
+    private func renameDeck() {
+        withAnimation {
+            deck.name = self.newName
+            do {
+                try viewContext.save()
+            } catch {
+                // Handle the error
                 print(error.localizedDescription)
             }
         }
