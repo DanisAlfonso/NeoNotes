@@ -40,30 +40,30 @@ struct ContentView: View {
     @ViewBuilder
     private func iPhoneTabView(selection: Binding<NavigationItem>) -> some View {
         TabView(selection: selection) {
-            DecksView()
-                .tabItem {
-                    Label("Decks", systemImage: "square.stack.3d.down.right")
-                }
-                .tag(NavigationItem.decks)
+            NavigationView { // Wrap each tab content in a NavigationView
+                DecksView()
+            }
+            .tabItem {
+                Label("Decks", systemImage: "square.stack.3d.down.right")
+            }
+            .tag(NavigationItem.decks)
 
-            NotesView()
-                .tabItem {
-                    Label("Notes", systemImage: "note.text")
-                }
-                .tag(NavigationItem.notes)
+            NavigationView { // Do the same for each tab
+                NotesView()
+            }
+            .tabItem {
+                Label("Notes", systemImage: "note.text")
+            }
+            .tag(NavigationItem.notes)
 
-            SettingsView()
-                .tabItem {
-                    Label("Settings", systemImage: "gear")
-                }
-                .tag(NavigationItem.settings)
+            NavigationView { // And for Settings
+                SettingsView()
+            }
+            .tabItem {
+                Label("Settings", systemImage: "gear")
+            }
+            .tag(NavigationItem.settings)
         }
-    }
-}
-
-struct DecksView: View {
-    var body: some View {
-        Text("Decks")
     }
 }
 
