@@ -16,9 +16,9 @@ struct CategoriesView: View {
     var body: some View {
         List {
             ForEach(deck.categoriesArray, id: \.self) { category in
-                // Here you can create a row view for each category
-                Text(category.name ?? "Untitled")
-                // Add navigation to the flashcard view or other actions here
+                NavigationLink(destination: FlashcardsStudyView(category: category)) {
+                    Text(category.name ?? "Untitled")
+                }
             }
             .onDelete(perform: deleteCategories)
         }
@@ -112,6 +112,15 @@ struct AddFlashcardView: View {
             newCategory.deck = deck
             return newCategory
         }
+    }
+}
+
+struct FlashcardsStudyView: View {
+    @ObservedObject var category: Category
+
+    var body: some View {
+        // You will implement your flashcard studying logic and UI here
+        Text("Flashcards for \(category.name ?? "Unknown")")
     }
 }
 
