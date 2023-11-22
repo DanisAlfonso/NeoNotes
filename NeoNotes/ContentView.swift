@@ -7,69 +7,94 @@
 
 import SwiftUI
 
-import SwiftUI
-
 struct ContentView: View {
-    @State private var selection: NavigationItem = .decks
-    @Environment(\.horizontalSizeClass) var sizeClass
+    @State private var isSidebarVisible = true
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #endif
 
     var body: some View {
-        if sizeClass == .compact {
-            iPhoneTabView(selection: $selection)
-        } else {
-            NavigationSplitView {
-                SidebarView(selection: $selection)
-            } detail: {
-                navigationDestination(for: selection)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func navigationDestination(for item: NavigationItem) -> some View {
-        switch item {
-        case .decks:
+        #if os(macOS)
+        NavigationSplitView(sidebar: {
+            sidebar
+        }, detail: {
             DecksView()
-        case .notes:
-            NotesView()
-        case .settings:
-            SettingsView()
+        })
+        .navigationSplitViewStyle(.balanced)
+
+        #else
+        if horizontalSizeClass == .compact {
+            iPhoneTabView()
+        } else {
+            iPadSidebarView()
         }
+        #endif
     }
-
-    @ViewBuilder
-    private func iPhoneTabView(selection: Binding<NavigationItem>) -> some View {
-        TabView(selection: selection) {
-            NavigationView { // Wrap each tab content in a NavigationView
-                DecksView()
+    
+    private var sidebar: some View {
+        List {
+            NavigationLink(destination: DecksView()) {
+                Label("Decks", systemImage: "rectangle.stack")
             }
-            .tabItem {
-                Label("Decks", systemImage: "square.stack.3d.down.right")
-            }
-            .tag(NavigationItem.decks)
-
-            NavigationView { // Do the same for each tab
-                NotesView()
-            }
-            .tabItem {
-                Label("Notes", systemImage: "note.text")
-            }
-            .tag(NavigationItem.notes)
-
-            NavigationView { // And for Settings
-                SettingsView()
-            }
-            .tabItem {
+            NavigationLink(destination: SettingsView()) {
                 Label("Settings", systemImage: "gear")
             }
-            .tag(NavigationItem.settings)
+            NavigationLink(destination: AccountView()) {
+                Label("Account", systemImage: "person.crop.circle")
+            }
+        }
+        .listStyle(SidebarListStyle())
+        .frame(minWidth: 200, idealWidth: 250, maxWidth: 300)
+    }
+    
+    private func toggleSidebar() {
+        isSidebarVisible.toggle()
+    }
+}
+
+#if os(iOS)
+struct iPhoneTabView: View {
+    var body: some View {
+        TabView {
+            DecksView()
+                .tabItem {
+                    Image(systemName: "rectangle.stack")
+                    Text("Flashcards")
+                }
+
+            SettingsView()
+                .tabItem {
+                    Image(systemName: "gear")
+                    Text("Settings")
+                }
+
+            AccountView()
+                .tabItem {
+                    Image(systemName: "person.crop.circle")
+                    Text("Account")
+                }
         }
     }
 }
 
-struct NotesView: View {
+struct iPadSidebarView: View {
     var body: some View {
-        Text("Notes")
+        NavigationView {
+            List {
+                NavigationLink("Flashcards", destination: DecksView())
+                NavigationLink("Settings", destination: SettingsView())
+                NavigationLink("Account", destination: AccountView())
+            }
+            .listStyle(SidebarListStyle())
+            .navigationTitle("QuickCards")
+        }
+    }
+}
+#endif
+
+struct AccountView: View {
+    var body: some View {
+        Text("Account")
     }
 }
 

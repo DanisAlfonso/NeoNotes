@@ -107,63 +107,66 @@ struct DeckCardView: View {
     @State private var newName = ""
 
     var body: some View {
-        VStack(alignment: .leading) {
-            Text(deck.name ?? "Untitled")
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-                .padding([.top, .horizontal])
-            Spacer()
-            HStack {
-                Text("Study now")
-                    .font(.headline)
+        NavigationLink(destination: CategoriesView(deck: deck)) {
+            VStack(alignment: .leading) {
+                Text(deck.name ?? "Untitled")
+                    .font(.title2)
+                    .fontWeight(.bold)
                     .foregroundColor(.white)
+                    .padding([.top, .horizontal])
                 Spacer()
-                Button(action: {
-                    // Perform an action, like navigating to the deck details
-                }) {
-                    Image(systemName: "arrow.right.circle.fill")
+                HStack {
+                    Text("Study now")
+                        .font(.headline)
                         .foregroundColor(.white)
-                        .imageScale(.large)
+                    Spacer()
+                    Button(action: {
+                        // Perform an action, like navigating to the deck details
+                    }) {
+                        Image(systemName: "arrow.right.circle.fill")
+                            .foregroundColor(.white)
+                            .imageScale(.large)
+                    }
                 }
+                .padding([.bottom, .horizontal])
             }
-            .padding([.bottom, .horizontal])
-        }
-        .frame(minHeight: 180)
-        .background(gradientView(for: deck.backgroundName))
-        .cornerRadius(10)
-        .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
-        .scaleEffect(isHovered ? 1.03 : 1.0) // Scale the card slightly when hovered
-            .animation(.easeInOut(duration: 0.3), value: isHovered) // Animate the scale effect
-            .onHover { hover in
-                isHovered = hover
-            }
-        .padding()
-        .contextMenu {
-            Button("Rename \(deck.name ?? "Deck")") {
-                self.newName = deck.name ?? ""
-                self.showingRenameAlert = true
-            }
-            Button(action: {
-                deleteDeck(deck)
-            }) {
-                Label("Delete \(deck.name ?? "Deck")", systemImage: "trash")
-            }
-            Menu("Change Background") {
-                ForEach(gradientOptions.keys.sorted(), id: \.self) { key in
-                    Button(key) {
-                        changeBackground(to: key)
+            .frame(minHeight: 180)
+            .background(gradientView(for: deck.backgroundName))
+            .cornerRadius(10)
+            .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
+            .scaleEffect(isHovered ? 1.03 : 1.0) // Scale the card slightly when hovered
+                .animation(.easeInOut(duration: 0.3), value: isHovered) // Animate the scale effect
+                .onHover { hover in
+                    isHovered = hover
+                }
+            .padding()
+            .contextMenu {
+                Button("Rename \(deck.name ?? "Deck")") {
+                    self.newName = deck.name ?? ""
+                    self.showingRenameAlert = true
+                }
+                Button(action: {
+                    deleteDeck(deck)
+                }) {
+                    Label("Delete \(deck.name ?? "Deck")", systemImage: "trash")
+                }
+                Menu("Change Background") {
+                    ForEach(gradientOptions.keys.sorted(), id: \.self) { key in
+                        Button(key) {
+                            changeBackground(to: key)
+                        }
                     }
                 }
             }
+            .alert("Rename Deck", isPresented: $showingRenameAlert) {
+                TextField("New name", text: $newName)
+                Button("Save", action: renameDeck)
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("Enter a new name for your deck.")
+            }
         }
-        .alert("Rename Deck", isPresented: $showingRenameAlert) {
-            TextField("New name", text: $newName)
-            Button("Save", action: renameDeck)
-            Button("Cancel", role: .cancel) { }
-        } message: {
-            Text("Enter a new name for your deck.")
-        }
+        .buttonStyle(PlainButtonStyle())
     }
     
     private func deleteDeck(_ deck: Deck) {
