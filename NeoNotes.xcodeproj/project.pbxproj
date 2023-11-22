@@ -13,7 +13,6 @@
 		3043AA7A2B0CE0C50085477F /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3043AA792B0CE0C50085477F /* Preview Assets.xcassets */; };
 		3043AA822B0CE0DC0085477F /* NeoNotesModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 3043AA802B0CE0DC0085477F /* NeoNotesModel.xcdatamodeld */; };
 		3043AA842B0CE2390085477F /* FlashCardEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3043AA832B0CE2390085477F /* FlashCardEngine.swift */; };
-		3043AA882B0CF1B90085477F /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3043AA872B0CF1B90085477F /* SidebarView.swift */; };
 		3043AA8A2B0D06BF0085477F /* DecksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3043AA892B0D06BF0085477F /* DecksView.swift */; };
 		3080A3272B0EA73D00FDE7FA /* CategoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3080A3262B0EA73D00FDE7FA /* CategoriesView.swift */; };
 /* End PBXBuildFile section */
@@ -27,7 +26,6 @@
 		3043AA792B0CE0C50085477F /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		3043AA812B0CE0DC0085477F /* NeoNotesModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = NeoNotesModel.xcdatamodel; sourceTree = "<group>"; };
 		3043AA832B0CE2390085477F /* FlashCardEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlashCardEngine.swift; sourceTree = "<group>"; };
-		3043AA872B0CF1B90085477F /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		3043AA892B0D06BF0085477F /* DecksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecksView.swift; sourceTree = "<group>"; };
 		3080A3262B0EA73D00FDE7FA /* CategoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriesView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -66,7 +64,6 @@
 				3043AA732B0CE0C40085477F /* ContentView.swift */,
 				3043AA892B0D06BF0085477F /* DecksView.swift */,
 				3080A3262B0EA73D00FDE7FA /* CategoriesView.swift */,
-				3043AA872B0CF1B90085477F /* SidebarView.swift */,
 				3043AA832B0CE2390085477F /* FlashCardEngine.swift */,
 				3043AA802B0CE0DC0085477F /* NeoNotesModel.xcdatamodeld */,
 				3043AA752B0CE0C50085477F /* Assets.xcassets */,
@@ -157,7 +154,6 @@
 				3043AA742B0CE0C40085477F /* ContentView.swift in Sources */,
 				3080A3272B0EA73D00FDE7FA /* CategoriesView.swift in Sources */,
 				3043AA722B0CE0C40085477F /* NeoNotesApp.swift in Sources */,
-				3043AA882B0CF1B90085477F /* SidebarView.swift in Sources */,
 				3043AA842B0CE2390085477F /* FlashCardEngine.swift in Sources */,
 				3043AA822B0CE0DC0085477F /* NeoNotesModel.xcdatamodeld in Sources */,
 				3043AA8A2B0D06BF0085477F /* DecksView.swift in Sources */,
