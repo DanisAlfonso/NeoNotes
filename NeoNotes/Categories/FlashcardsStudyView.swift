@@ -11,6 +11,7 @@ import CoreData
 struct FlashcardsStudyView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @State private var currentFlashcard: Flashcard?
+    @State private var isFlipped = false
     var category: Category
 
     let fsrsEngine = FSRS()
@@ -18,7 +19,29 @@ struct FlashcardsStudyView: View {
     var body: some View {
         VStack {
             if let flashcard = currentFlashcard {
-                Text(flashcard.question ?? "No Question")
+                ZStack {
+                    if !isFlipped {
+                        Text(flashcard.question ?? "No Question")
+                            .font(.title)
+                            .foregroundStyle(.black)
+                    }
+                    if isFlipped {
+                        Text(flashcard.answer ?? "No Answer")
+                            .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
+                            .font(.title)
+                            .foregroundStyle(.black)
+                    }
+                }
+                .frame(width: 400, height: 300)
+                .background(Color.white)
+                .cornerRadius(10)
+                .shadow(radius: 5)
+                .rotation3DEffect(.degrees(isFlipped ? 180 : 0), axis: (x: 0, y: 1, z: 0))
+                .onTapGesture {
+                    withAnimation {
+                        isFlipped.toggle()
+                    }
+                }
 
                 HStack {
                     Button("Again") { rateFlashcard(rating: .Again) }
@@ -48,6 +71,8 @@ struct FlashcardsStudyView: View {
         } else {
             self.currentFlashcard = nil
         }
+
+        self.isFlipped = false
     }
 
     private func rateFlashcard(rating: Rating) {
@@ -125,10 +150,15 @@ struct FlashcardsStudyView_Previews: PreviewProvider {
         flashcard2.question = "2 + 2"
         flashcard2.answer = "4"
         flashcard2.category = newCategory
+        
+        let flashcard3 = Flashcard(context: context)
+        flashcard3.question = "3 + 3"
+        flashcard3.answer = "6"
+        flashcard3.category = newCategory
 
         return FlashcardsStudyView(category: newCategory)
             .environment(\.managedObjectContext, context)
-            .frame(width: 400, height: 400)
+            .frame(width: 600, height: 500)
     }
 }
 
