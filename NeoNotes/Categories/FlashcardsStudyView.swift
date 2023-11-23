@@ -32,7 +32,7 @@ struct FlashcardsStudyView: View {
                             .foregroundStyle(.black)
                     }
                 }
-                .frame(width: 400, height: 300)
+                .frame(width: 600, height: 400)
                 .background(Color.white)
                 .cornerRadius(10)
                 .shadow(radius: 5)
@@ -42,12 +42,16 @@ struct FlashcardsStudyView: View {
                         isFlipped.toggle()
                     }
                 }
-
-                HStack {
-                    Button("Again") { rateFlashcard(rating: .Again) }
-                    Button("Hard")  { rateFlashcard(rating: .Hard)  }
-                    Button("Good")  { rateFlashcard(rating: .Good)  }
-                    Button("Easy")  { rateFlashcard(rating: .Easy)  }
+                
+                if let _ = currentFlashcard {
+                    HStack {
+                        Spacer(minLength: 20)
+                        RatingButton(text: "Again", color: .red, action: { rateFlashcard(rating: .Again) })
+                        RatingButton(text: "Hard", color: .orange, action: { rateFlashcard(rating: .Hard) })
+                        RatingButton(text: "Good", color: .green, action: { rateFlashcard(rating: .Good) })
+                        RatingButton(text: "Easy", color: .blue, action: { rateFlashcard(rating: .Easy) })
+                        Spacer(minLength: 20)
+                    }
                 }
             } else {
                 Text("No flashcards to review.")
@@ -100,6 +104,40 @@ struct FlashcardsStudyView: View {
     }
 }
 
+struct RatingButton: View {
+    let text: String
+    let color: Color
+    let action: () -> Void
+    @State private var isPressed = false
+    @State private var isHovered = false // State to track if the mouse is hovering
+
+    var body: some View {
+        Button(action: {
+            self.isPressed = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.isPressed = false
+                self.action()
+            }
+        }) {
+            Text(text)
+                .fontWeight(.bold)
+                .padding(.vertical, 13)
+                .padding(.horizontal, 15)
+                .frame(minWidth: 0, maxWidth: .infinity)
+                .background(color)
+                .foregroundColor(.white)
+                .cornerRadius(5)
+                .shadow(radius: isHovered ? 7 : 5) // Adjust shadow based on hover state
+                .scaleEffect(isPressed ? 0.95 : 1.0)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .animation(.easeInOut, value: isPressed)
+        .onHover { hovering in
+            self.isHovered = hovering
+        }
+        .opacity(isHovered ? 0.9 : 1.0)
+    }
+}
 
 extension Flashcard {
     func toCard() -> Card {
