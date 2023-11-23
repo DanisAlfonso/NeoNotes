@@ -15,16 +15,19 @@
         <relationship name="categories" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Category" inverseName="deck" inverseEntity="Category"/>
     </entity>
     <entity name="Flashcard" representedClassName="Flashcard" syncable="YES" codeGenerationType="class">
-        <attribute name="answer" optional="YES" attributeType="String"/>
-        <attribute name="content" optional="YES" attributeType="String"/>
-        <attribute name="creationDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
-        <attribute name="difficulty" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="answer" attributeType="String"/>
+        <attribute name="audioPath" optional="YES" attributeType="String"/>
+        <attribute name="creationDate" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="difficulty" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="due" optional="YES" attributeType="Date" usesScalarValueType="NO" spotlightIndexingEnabled="YES"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="lastReviewedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
-        <attribute name="nextReviewDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
-        <attribute name="question" optional="YES" attributeType="String"/>
-        <attribute name="reviewCount" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="reviewStatus" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="imagePath" optional="YES" attributeType="String"/>
+        <attribute name="lapses" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="lastReview" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="question" attributeType="String"/>
+        <attribute name="reps" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="stability" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="status" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <relationship name="category" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Category" inverseName="flashcards" inverseEntity="Category"/>
     </entity>
 </model>

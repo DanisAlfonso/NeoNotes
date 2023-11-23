@@ -86,7 +86,7 @@ struct AddFlashcardView: View {
         let newFlashcard = Flashcard(context: viewContext)
         newFlashcard.id = UUID() // Set a new UUID for the id
         newFlashcard.creationDate = Date() // Set the current date for creationDate
-        newFlashcard.content = flashcardContent
+        newFlashcard.question = flashcardContent
         newFlashcard.answer = flashcardAnswer
 
         // Find or create the category
@@ -112,15 +112,6 @@ struct AddFlashcardView: View {
             newCategory.deck = deck
             return newCategory
         }
-    }
-}
-
-struct FlashcardsStudyView: View {
-    @ObservedObject var category: Category
-
-    var body: some View {
-        // You will implement your flashcard studying logic and UI here
-        Text("Flashcards for \(category.name ?? "Unknown")")
     }
 }
 

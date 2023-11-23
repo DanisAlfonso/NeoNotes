@@ -7,8 +7,6 @@
 
 import Foundation
 
-import Foundation
-
 public class Const {
     public static let secondsInMinute = 60.0
     public static let secondsInHour = 3600.0
