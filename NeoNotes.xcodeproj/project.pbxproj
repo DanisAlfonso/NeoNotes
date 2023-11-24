@@ -17,6 +17,7 @@
 		3080A3272B0EA73D00FDE7FA /* CategoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3080A3262B0EA73D00FDE7FA /* CategoriesView.swift */; };
 		3080A32A2B0EB25700FDE7FA /* FlashcardsStudyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3080A3292B0EB25700FDE7FA /* FlashcardsStudyView.swift */; };
 		3080A3552B10E47B00FDE7FA /* DocumentPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3080A3542B10E47B00FDE7FA /* DocumentPicker.swift */; };
+		3080A3572B1107C600FDE7FA /* AddFlashcardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3080A3562B1107C500FDE7FA /* AddFlashcardView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,6 +33,7 @@
 		3080A3262B0EA73D00FDE7FA /* CategoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriesView.swift; sourceTree = "<group>"; };
 		3080A3292B0EB25700FDE7FA /* FlashcardsStudyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlashcardsStudyView.swift; sourceTree = "<group>"; };
 		3080A3542B10E47B00FDE7FA /* DocumentPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentPicker.swift; sourceTree = "<group>"; };
+		3080A3562B1107C500FDE7FA /* AddFlashcardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFlashcardView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -89,6 +91,7 @@
 			isa = PBXGroup;
 			children = (
 				3080A3262B0EA73D00FDE7FA /* CategoriesView.swift */,
+				3080A3562B1107C500FDE7FA /* AddFlashcardView.swift */,
 				3080A3542B10E47B00FDE7FA /* DocumentPicker.swift */,
 				3080A3292B0EB25700FDE7FA /* FlashcardsStudyView.swift */,
 			);
@@ -169,6 +172,7 @@
 				3080A3272B0EA73D00FDE7FA /* CategoriesView.swift in Sources */,
 				3043AA722B0CE0C40085477F /* NeoNotesApp.swift in Sources */,
 				3043AA842B0CE2390085477F /* FlashCardEngine.swift in Sources */,
+				3080A3572B1107C600FDE7FA /* AddFlashcardView.swift in Sources */,
 				3080A3552B10E47B00FDE7FA /* DocumentPicker.swift in Sources */,
 				3043AA822B0CE0DC0085477F /* NeoNotesModel.xcdatamodeld in Sources */,
 				3080A32A2B0EB25700FDE7FA /* FlashcardsStudyView.swift in Sources */,
