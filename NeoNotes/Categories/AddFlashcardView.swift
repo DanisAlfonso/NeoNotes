@@ -38,9 +38,7 @@ struct AddFlashcardView: View {
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .padding()
                     if !questionAudioFilename.isEmpty {
-                        Text("Audio file: \(questionAudioFilename)")
-                            .font(.caption)
-                            .foregroundColor(.green)
+                        audioFileRow(filename: questionAudioFilename, onDelete: { deleteAudioFile(for: .question)})
                     }
                 }
                 
@@ -65,9 +63,7 @@ struct AddFlashcardView: View {
                         .padding()
                     
                     if !answerAudioFilename.isEmpty {
-                        Text("Audio file: \(answerAudioFilename)")
-                            .font(.caption)
-                            .foregroundColor(.green)
+                        audioFileRow(filename: answerAudioFilename, onDelete: {deleteAudioFile(for: .answer)})
                     }
                 }
                 
@@ -195,6 +191,46 @@ struct AddFlashcardView: View {
         } catch {
             print("Error saving audio file: \(error)")
             return "" // Return an empty string or handle the error appropriately
+        }
+    }
+    
+    private func deleteAudioFile(for fieldType: FieldType) {
+        switch fieldType {
+        case .question:
+            if let url = questionAudioURL {
+                removeAudioFile(at: url)
+            }
+            questionAudioURL = nil
+            questionAudioFilename = ""
+        case .answer:
+            if let url = answerAudioURL {
+                removeAudioFile(at: url)
+            }
+            answerAudioURL = nil
+            answerAudioFilename = ""
+        }
+    }
+
+    private func removeAudioFile(at url: URL) {
+        do {
+            try FileManager.default.removeItem(at: url)
+            print("File removed: \(url.lastPathComponent)")
+        } catch {
+            print("Error removing file: \(error)")
+        }
+    }
+
+    @ViewBuilder
+    private func audioFileRow(filename: String, onDelete: @escaping () -> Void) -> some View {
+        HStack {
+            Text("Audio file: \(filename)")
+                .font(.caption)
+                .foregroundColor(.green)
+
+            Button(action: onDelete) {
+                Image(systemName: "trash")
+                    .foregroundColor(.red)
+            }
         }
     }
 }
