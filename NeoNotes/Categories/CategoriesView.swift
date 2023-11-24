@@ -8,6 +8,7 @@
 import SwiftUI
 import CoreData
 import AVFoundation
+import UniformTypeIdentifiers
 
 struct CategoriesView: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -170,7 +171,13 @@ struct AddFlashcardView: View {
         panel.allowsMultipleSelection = false
         panel.canChooseFiles = true
         panel.canChooseDirectories = false
-        panel.allowedFileTypes = ["mp3", "wav", "m4a", "aac"]
+        panel.allowedContentTypes = [
+            UTType(mimeType: "audio/mpeg") ?? UTType.audio, // for mp3
+            UTType(filenameExtension: "wav") ?? UTType.audio, // for wav
+            UTType(mimeType: "audio/x-m4a") ?? UTType.audio, // for m4a
+            UTType(mimeType: "audio/aac") ?? UTType.audio // for aac
+        ]
+
         if panel.runModal() == .OK {
             if let pickedURL = panel.url {
                 if fieldType == .question {
@@ -182,6 +189,7 @@ struct AddFlashcardView: View {
         }
         #endif
     }
+
     
     private func saveAudioFile(_ audioURL: URL) -> String {
         // Get the documents directory path
