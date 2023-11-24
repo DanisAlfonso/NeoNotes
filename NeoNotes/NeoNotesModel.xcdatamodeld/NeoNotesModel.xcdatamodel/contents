@@ -16,6 +16,7 @@
     </entity>
     <entity name="Flashcard" representedClassName="Flashcard" syncable="YES" codeGenerationType="class">
         <attribute name="answer" attributeType="String"/>
+        <attribute name="answerAudioFilename" optional="YES" attributeType="String"/>
         <attribute name="audioPath" optional="YES" attributeType="String"/>
         <attribute name="creationDate" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="difficulty" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
@@ -25,6 +26,7 @@
         <attribute name="lapses" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="lastReview" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="question" attributeType="String"/>
+        <attribute name="questionAudioFilename" optional="YES" attributeType="String"/>
         <attribute name="reps" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="stability" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="status" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>

@@ -7,10 +7,12 @@
 
 import SwiftUI
 import CoreData
+import AVFoundation
 
 struct FlashcardsStudyView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @State private var currentFlashcard: Flashcard?
+    @State private var audioPlayer: AVAudioPlayer?
     @State private var isFlipped = false
     var category: Category
 
@@ -21,15 +23,34 @@ struct FlashcardsStudyView: View {
             if let flashcard = currentFlashcard {
                 ZStack {
                     if !isFlipped {
-                        Text(flashcard.question ?? "No Question")
-                            .font(.title)
-                            .foregroundStyle(.black)
+                        VStack {
+                            Text(flashcard.question ?? "No Question")
+                                .font(.title)
+                                .foregroundStyle(.black)
+                            
+                            if let questionAudioFilename = flashcard.questionAudioFilename, !questionAudioFilename.isEmpty {
+                                let fileURL = getDocumentsDirectory().appendingPathComponent(questionAudioFilename)
+                                if FileManager.default.fileExists(atPath: fileURL.path) {
+                                    playButton(for: questionAudioFilename, isFlipped: isFlipped)
+                                }
+                            }
+                        }
                     }
                     if isFlipped {
-                        Text(flashcard.answer ?? "No Answer")
-                            .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
-                            .font(.title)
-                            .foregroundStyle(.black)
+                        VStack {
+                            Text(flashcard.answer ?? "No Answer")
+                                .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
+                                .font(.title)
+                                .foregroundStyle(.black)
+                            
+                            // Play button for answer audio
+                            if let answerAudioFilename = flashcard.answerAudioFilename, !answerAudioFilename.isEmpty {
+                                let fileURL = getDocumentsDirectory().appendingPathComponent(answerAudioFilename)
+                                if FileManager.default.fileExists(atPath: fileURL.path) {
+                                    playButton(for: answerAudioFilename, isFlipped: isFlipped)
+                                }
+                            }
+                        }
                     }
                 }
                 .frame(width: 600, height: 400)
@@ -46,10 +67,10 @@ struct FlashcardsStudyView: View {
                 if let _ = currentFlashcard {
                     HStack {
                         Spacer(minLength: 20)
-                        RatingButton(text: "Again", color: .red, action: { rateFlashcard(rating: .Again) })
-                        RatingButton(text: "Hard", color: .orange, action: { rateFlashcard(rating: .Hard) })
-                        RatingButton(text: "Good", color: .green, action: { rateFlashcard(rating: .Good) })
-                        RatingButton(text: "Easy", color: .blue, action: { rateFlashcard(rating: .Easy) })
+                        RatingButton(text: "Again", color: .red,    action: { rateFlashcard(rating: .Again) })
+                        RatingButton(text: "Hard",  color: .orange, action: { rateFlashcard(rating: .Hard)  })
+                        RatingButton(text: "Good",  color: .green,  action: { rateFlashcard(rating: .Good)  })
+                        RatingButton(text: "Easy",  color: .blue,   action: { rateFlashcard(rating: .Easy)  })
                         Spacer(minLength: 20)
                     }
                 }
@@ -101,6 +122,39 @@ struct FlashcardsStudyView: View {
         } catch {
             // Handle the error
         }
+    }
+    
+    private func playAudio(filename: String) {
+        let fileURL = getDocumentsDirectory().appendingPathComponent(filename)
+        do {
+            audioPlayer = try AVAudioPlayer(contentsOf: fileURL)
+            audioPlayer?.play()
+        } catch {
+            print("Unable to play audio: \(error)")
+        }
+    }
+    
+    @ViewBuilder
+    private func playButton(for audioFilename: String, isFlipped: Bool) -> some View {
+        Button(action: {
+            playAudio(filename: audioFilename)
+        }) {
+            Image(systemName: "play.circle")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 44, height: 44)
+                .foregroundStyle(.black)
+                .rotationEffect(.degrees(isFlipped ? 180 : 0))
+        }
+        .buttonStyle(PlainButtonStyle())
+        .onTapGesture {
+            playAudio(filename: audioFilename)
+        }
+    }
+    
+    // Helper function to get the path to the documents directory
+    private func getDocumentsDirectory() -> URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
     }
 }
 
@@ -199,4 +253,3 @@ struct FlashcardsStudyView_Previews: PreviewProvider {
             .frame(width: 600, height: 500)
     }
 }
-
