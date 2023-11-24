@@ -14,7 +14,7 @@ struct AddFlashcardView: View {
     @Binding var isPresented: Bool
     @Environment(\.managedObjectContext) private var viewContext
     var deck: Deck
-    @State private var flashcardContent = ""
+    @State private var flashcardQuestion = ""
     @State private var flashcardAnswer = ""
     @State private var categoryName = ""
     
@@ -34,7 +34,7 @@ struct AddFlashcardView: View {
                 .padding()
             HStack {
                 VStack {
-                    TextField("Question", text: $flashcardContent)
+                    TextField("Question", text: $flashcardQuestion)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .padding()
                     if !questionAudioFilename.isEmpty {
@@ -92,6 +92,7 @@ struct AddFlashcardView: View {
                     addFlashcard()
                     isPresented = false
                 }
+                .disabled(flashcardQuestion.isEmpty || flashcardAnswer.isEmpty)
                 .buttonStyle(.borderedProminent)
                 .padding()
             }
@@ -104,7 +105,7 @@ struct AddFlashcardView: View {
         let newFlashcard = Flashcard(context: viewContext)
         newFlashcard.id = UUID() // Set a new UUID for the id
         newFlashcard.creationDate = Date() // Set the current date for creationDate
-        newFlashcard.question = flashcardContent
+        newFlashcard.question = flashcardQuestion
         newFlashcard.answer = flashcardAnswer
 
         // Find or create the category
