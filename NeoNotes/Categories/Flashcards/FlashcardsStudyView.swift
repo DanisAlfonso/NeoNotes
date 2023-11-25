@@ -11,16 +11,23 @@ import AVFoundation
 
 struct FlashcardsStudyView: View {
     @Environment(\.managedObjectContext) private var viewContext
-    @State private var currentFlashcard: Flashcard?
+    @State private var triggerViewUpdate: Bool = false
     @State private var audioPlayer: AVAudioPlayer?
     @State private var isFlipped = false
+    @State private var isEditing = false
+    @ObservedObject var viewModel = FlashcardViewModel(context: PersistenceController.shared.container.viewContext)
+    
     var category: Category
-
     let fsrsEngine = FSRS()
+    
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \Flashcard.due, ascending: true)],
+        animation: .default)
+    private var flashcards: FetchedResults<Flashcard>
 
     var body: some View {
         VStack {
-            if let flashcard = currentFlashcard {
+            if let flashcard = flashcards.first(where: { $0.category == category && ($0.due ?? Date()) <= Date() }) {
                 ZStack {
                     if !isFlipped {
                         VStack {
@@ -64,7 +71,7 @@ struct FlashcardsStudyView: View {
                     }
                 }
                 
-                if let _ = currentFlashcard {
+                if let _ = viewModel.flashcard {
                     HStack {
                         Spacer(minLength: 20)
                         RatingButton(text: "Again", color: .red,    action: { rateFlashcard(rating: .Again) })
@@ -78,6 +85,19 @@ struct FlashcardsStudyView: View {
                 Text("No flashcards to review.")
             }
         }
+        .sheet(isPresented: $isEditing) {
+            EditFlashcardView(viewModel: viewModel)
+        }
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                Button(action: {
+                    isEditing.toggle()
+                }) {
+                    Label("Edit", systemImage: "pencil")
+                }
+                .disabled(flashcards.first(where: { $0.category == category }) == nil)
+            }
+        }
         .onAppear {
             loadNextFlashcard(from: category)
         }
@@ -85,23 +105,15 @@ struct FlashcardsStudyView: View {
 
     private func loadNextFlashcard(from category: Category) {
         let currentDate = Date()
-
-        // Fetch the next due flashcard
-        if let nextFlashcard = category.flashcardsArray.first(where: { flashcard in
-            // Assuming 'due' is a Date and flashcards are due when 'due' <= currentDate
-            // This logic might change based on your app's specific requirements
-            (flashcard.due ?? currentDate) <= currentDate
-        }) {
-            self.currentFlashcard = nextFlashcard
+        if let nextFlashcard = category.flashcardsArray.first(where: { $0.due ?? currentDate <= currentDate }) {
+            viewModel.flashcard = nextFlashcard
         } else {
-            self.currentFlashcard = nil
+            viewModel.flashcard = nil
         }
-
-        self.isFlipped = false
     }
 
     private func rateFlashcard(rating: Rating) {
-        guard let flashcard = currentFlashcard else { return }
+        guard let flashcard = viewModel.flashcard else { return }
         let card = flashcard.toCard()
 
         // Use FSRS engine to update the card based on the rating
@@ -163,7 +175,7 @@ struct RatingButton: View {
     let color: Color
     let action: () -> Void
     @State private var isPressed = false
-    @State private var isHovered = false // State to track if the mouse is hovering
+    @State private var isHovered = false
 
     var body: some View {
         Button(action: {
@@ -181,7 +193,7 @@ struct RatingButton: View {
                 .background(color)
                 .foregroundColor(.white)
                 .cornerRadius(5)
-                .shadow(radius: isHovered ? 7 : 5) // Adjust shadow based on hover state
+                .shadow(radius: isHovered ? 7 : 5)
                 .scaleEffect(isPressed ? 0.95 : 1.0)
         }
         .buttonStyle(PlainButtonStyle())
@@ -219,10 +231,81 @@ extension Flashcard {
     }
 }
 
-extension Category {
-    var flashcardsArray: [Flashcard] {
-        let set = flashcards as? Set<Flashcard> ?? []
-        return set.sorted { $0.creationDate ?? Date() < $1.creationDate ?? Date() }
+struct EditFlashcardView: View {
+    @ObservedObject var viewModel: FlashcardViewModel
+    @Environment(\.presentationMode) var presentationMode
+    @State private var question: String = ""
+    @State private var answer: String = ""
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("Question")) {
+                    TextField("Enter question", text: $question)
+                }
+                Section(header: Text("Answer")) {
+                    TextField("Enter answer", text: $answer)
+                }
+            }
+            .navigationTitle("Edit Flashcard")
+            .toolbar {
+                ToolbarItem(placement: .automatic) {
+                    Button("Cancel") {
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                }
+                ToolbarItem(placement: .automatic) {
+                    Button("Save") {
+                        viewModel.updateFlashcard(question: question, answer: answer)
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                }
+            }
+            .onAppear {
+                if let flashcard = viewModel.flashcard {
+                    question = flashcard.question ?? ""
+                    answer = flashcard.answer ?? ""
+                }
+            }
+        }
+    }
+}
+
+class FlashcardViewModel: ObservableObject {
+    @Published var flashcard: Flashcard?
+    private var viewContext: NSManagedObjectContext
+
+    init(context: NSManagedObjectContext) {
+        self.viewContext = context
+    }
+
+    func loadFlashcard(withID id: UUID) {
+        let request: NSFetchRequest<Flashcard> = Flashcard.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+        request.fetchLimit = 1
+
+        do {
+            let results = try viewContext.fetch(request)
+            DispatchQueue.main.async {
+                self.flashcard = results.first
+            }
+        } catch {
+            print("Error fetching flashcard: \(error)")
+        }
+    }
+
+    func saveFlashcard() {
+        do {
+            try viewContext.save()
+        } catch {
+            print("Error saving context: \(error.localizedDescription)")
+        }
+    }
+
+    func updateFlashcard(question: String, answer: String) {
+        flashcard?.question = question
+        flashcard?.answer = answer
+        saveFlashcard()
     }
 }
 

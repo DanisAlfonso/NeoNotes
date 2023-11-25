@@ -57,3 +57,9 @@ extension Deck {
     }
 }
 
+extension Category {
+    var flashcardsArray: [Flashcard] {
+        let set = flashcards as? Set<Flashcard> ?? []
+        return set.sorted { $0.creationDate ?? Date() < $1.creationDate ?? Date() }
+    }
+}
