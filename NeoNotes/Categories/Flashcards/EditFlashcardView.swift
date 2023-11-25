@@ -13,6 +13,11 @@ struct EditFlashcardView: View {
     @State private var question: String = ""
     @State private var answer: String = ""
     @State private var isSaving = false
+    
+    @State private var questionAudioURL: URL?
+    @State private var answerAudioURL: URL?
+    @State private var questionAudioFilename: String = ""
+    @State private var answerAudioFilename: String = ""
 
     var body: some View {
         NavigationView {
@@ -27,7 +32,8 @@ struct EditFlashcardView: View {
                                 .stroke(Color.gray, lineWidth: 1)
                         )
                         .padding(.horizontal)
-                }
+                    }
+                
                 Section(header: Text("Answer")
                     .padding(.leading, 20)
                     .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)) {

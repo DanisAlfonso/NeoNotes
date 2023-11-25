@@ -34,9 +34,16 @@ struct AddFlashcardView: View {
                 .padding()
             HStack {
                 VStack {
-                    TextField("Question", text: $flashcardQuestion)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .padding()
+                    Text("Question")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.leading)
+                    TextEditor(text: $flashcardQuestion)
+                                    .frame(minHeight: 50, maxHeight: .infinity)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 5)
+                                            .stroke(Color.gray, lineWidth: 1)
+                                    )
+                                    .padding(.horizontal)
                     if !questionAudioFilename.isEmpty {
                         audioFileRow(filename: questionAudioFilename, onDelete: { deleteAudioFile(for: .question)})
                     }
@@ -58,9 +65,16 @@ struct AddFlashcardView: View {
             
             HStack {
                 VStack {
-                    TextField("Answer", text: $flashcardAnswer)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .padding()
+                    Text("Answer")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.leading)
+                    TextEditor(text: $flashcardAnswer)
+                        .frame(minHeight: 50, maxHeight: .infinity)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 5)
+                                .stroke(Color.gray, lineWidth: 1)
+                        )
+                        .padding(.horizontal)
                     
                     if !answerAudioFilename.isEmpty {
                         audioFileRow(filename: answerAudioFilename, onDelete: {deleteAudioFile(for: .answer)})
