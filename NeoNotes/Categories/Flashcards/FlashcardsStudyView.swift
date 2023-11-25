@@ -87,6 +87,7 @@ struct FlashcardsStudyView: View {
         }
         .sheet(isPresented: $isEditing) {
             EditFlashcardView(viewModel: viewModel)
+                .frame(minHeight: 400) 
         }
         .toolbar {
             ToolbarItem(placement: .automatic) {
@@ -228,46 +229,6 @@ extension Flashcard {
         self.lapses = Int16(card.lapses)
         self.status = Int16(card.status.rawValue)
         self.lastReview = card.lastReview
-    }
-}
-
-struct EditFlashcardView: View {
-    @ObservedObject var viewModel: FlashcardViewModel
-    @Environment(\.presentationMode) var presentationMode
-    @State private var question: String = ""
-    @State private var answer: String = ""
-
-    var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("Question")) {
-                    TextField("Enter question", text: $question)
-                }
-                Section(header: Text("Answer")) {
-                    TextField("Enter answer", text: $answer)
-                }
-            }
-            .navigationTitle("Edit Flashcard")
-            .toolbar {
-                ToolbarItem(placement: .automatic) {
-                    Button("Cancel") {
-                        presentationMode.wrappedValue.dismiss()
-                    }
-                }
-                ToolbarItem(placement: .automatic) {
-                    Button("Save") {
-                        viewModel.updateFlashcard(question: question, answer: answer)
-                        presentationMode.wrappedValue.dismiss()
-                    }
-                }
-            }
-            .onAppear {
-                if let flashcard = viewModel.flashcard {
-                    question = flashcard.question ?? ""
-                    answer = flashcard.answer ?? ""
-                }
-            }
-        }
     }
 }
 
