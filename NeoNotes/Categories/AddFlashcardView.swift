@@ -27,6 +27,15 @@ struct AddFlashcardView: View {
     @State private var questionAudioFilename: String = ""
     @State private var answerAudioFilename: String = ""
     @State private var audioPlayer: AVAudioPlayer?
+    
+    private var audioPlayerManager = AudioPlayerManager()
+    @State private var isPlaying = false
+    
+    init(isPresented: Binding<Bool>, deck: Deck) {
+            _isPresented = isPresented
+            self.deck = deck
+            // Initialize other properties if necessary
+        }
 
     var body: some View {
         VStack {
@@ -48,7 +57,7 @@ struct AddFlashcardView: View {
                     
                     if !questionAudioFilename.isEmpty {
                      
-                        DeletableFileView(filename: questionAudioFilename, onDelete: {
+                        DeletableFileView(isPlaying: $isPlaying, filename: questionAudioFilename, onDelete: {
                             deleteAudioFile(for: .question)
                         },
                         onPlay: {
@@ -62,7 +71,6 @@ struct AddFlashcardView: View {
                 }
                 
                 Button(action: {
-                    print("Upload button tapped for question audio")
                     uploadAudio(for: .question)
                 }) {
                     Image(systemName: "waveform.and.mic")
@@ -90,7 +98,7 @@ struct AddFlashcardView: View {
                         .padding(.horizontal)
                     
                     if !answerAudioFilename.isEmpty {
-                        DeletableFileView(filename: answerAudioFilename, onDelete: {
+                        DeletableFileView(isPlaying: $isPlaying, filename: answerAudioFilename, onDelete: {
                             deleteAudioFile(for: .answer)
                         },
                         onPlay: {
@@ -104,7 +112,6 @@ struct AddFlashcardView: View {
                 }
                 
                 Button(action: {
-                    print("Upload button tapped for question audio")
                     uploadAudio(for: .answer)
                 }) {
                     Image(systemName: "waveform.and.mic")
@@ -126,7 +133,6 @@ struct AddFlashcardView: View {
                 .buttonStyle(.bordered)
 
                 Button("Save") {
-                    print("Save button tapped")
                     addFlashcard()
                     isPresented = false
                 }
@@ -140,7 +146,6 @@ struct AddFlashcardView: View {
     }
 
     private func addFlashcard() {
-        print("addFlashcard method called")
         let newFlashcard = Flashcard(context: viewContext)
         newFlashcard.id = UUID()
         newFlashcard.creationDate = Date()
@@ -159,10 +164,8 @@ struct AddFlashcardView: View {
         }
         
         if let questionURL = questionAudioURL {
-            print("Attempting to save question audio file")
             let filename = saveAudioFile(questionURL)
             newFlashcard.questionAudioFilename = filename
-            print("New flashcard question audio filename: \(filename)")
         }
         
         if let answerURL = answerAudioURL {
@@ -201,18 +204,13 @@ struct AddFlashcardView: View {
 
         if panel.runModal() == .OK {
             if let pickedURL = panel.url {
-                print("File selected: \(pickedURL.path)")
                 let pickedFilename = pickedURL.lastPathComponent
                 if fieldType == .question {
                     questionAudioURL = pickedURL
                     questionAudioFilename = pickedFilename
-                    print("Question audio URL set to: \(questionAudioURL?.path ?? "nil")")
-                    print("Question audio filename set to: \(questionAudioFilename)")
                 } else if fieldType == .answer {
                     answerAudioURL = pickedURL
                     answerAudioFilename = pickedFilename
-                    print("Answer audio URL set to: \(answerAudioURL?.path ?? "nil")")
-                    print("Answer audio filename set to: \(answerAudioFilename)")
                 }
             }
         }
@@ -232,7 +230,6 @@ struct AddFlashcardView: View {
                 try fileManager.removeItem(at: destinationURL)
             }
             try fileManager.copyItem(at: audioURL, to: destinationURL)
-            print("Audio file saved from \(audioURL.path) to \(destinationURL.path)")
             return newFilename
         } catch {
             print("Error saving audio file: \(error)")
@@ -240,15 +237,37 @@ struct AddFlashcardView: View {
         }
     }
 
+//    private func playAudio(filename: String? = nil, url: URL? = nil) {
+//        let fileURL: URL
+//
+//        if let filename = filename {
+//            let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+//            fileURL = documentsDirectory.appendingPathComponent(filename)
+//        } else if let url = url {
+//            fileURL = url
+//        } else {
+//            print("No audio file specified")
+//            return
+//        }
+//
+//        if FileManager.default.fileExists(atPath: fileURL.path) {
+//            do {
+//                audioPlayer = try AVAudioPlayer(contentsOf: fileURL)
+//                audioPlayer?.play()
+//            } catch {
+//                print("Could not play audio. Error: \(error.localizedDescription)")
+//            }
+//        } else {
+//            print("Audio file does not exist at path: \(fileURL.path)")
+//        }
+//    }
     private func playAudio(filename: String? = nil, url: URL? = nil) {
         let fileURL: URL
 
         if let filename = filename {
-            // Existing logic to play from saved files
             let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
             fileURL = documentsDirectory.appendingPathComponent(filename)
         } else if let url = url {
-            // Play from the provided URL
             fileURL = url
         } else {
             print("No audio file specified")
@@ -256,17 +275,17 @@ struct AddFlashcardView: View {
         }
 
         if FileManager.default.fileExists(atPath: fileURL.path) {
-            do {
-                audioPlayer = try AVAudioPlayer(contentsOf: fileURL)
-                audioPlayer?.play()
-                print("Audio playback started for \(fileURL.path)")
-            } catch {
-                print("Could not play audio. Error: \(error.localizedDescription)")
+            audioPlayerManager.didFinishPlaying = {
+                DispatchQueue.main.async {
+                    self.isPlaying = false
+                }
             }
+            audioPlayerManager.playAudio(url: fileURL)
         } else {
             print("Audio file does not exist at path: \(fileURL.path)")
         }
     }
+
     
     private func deleteAudioFile(for fieldType: FieldType) {
         switch fieldType {
@@ -288,7 +307,6 @@ struct AddFlashcardView: View {
     private func removeAudioFile(at url: URL) {
         do {
             try FileManager.default.removeItem(at: url)
-            print("File removed: \(url.lastPathComponent)")
         } catch {
             print("Error removing file: \(error)")
         }
