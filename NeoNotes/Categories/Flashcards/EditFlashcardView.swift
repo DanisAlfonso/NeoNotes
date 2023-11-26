@@ -206,6 +206,10 @@ struct EditFlashcardView: View {
 struct AudioManagementView: View {
     @Binding var audioURL: URL?
     @Binding var audioFilename: String
+    
+    @State private var isHoveringPlay = false
+    @State private var isHoveringTrash = false
+    
     var onUpload: () -> Void
     var onPlay: () -> Void
     var onDelete: () -> Void
@@ -220,17 +224,23 @@ struct AudioManagementView: View {
                     Spacer()
                     Button(action: onPlay) {
                         Image(systemName: "play.circle.fill")
-                            .foregroundColor(.blue)
+                            .foregroundColor(isHoveringPlay ? .blue : .gray)
                     }
                     .buttonStyle(PlainButtonStyle())
                     .padding(.trailing, 5)
+                    .onHover { hovering in
+                        isHoveringPlay = hovering
+                    }
 
                     Button(action: onDelete) {
                         Image(systemName: "trash.fill")
-                            .foregroundColor(.red)
+                            .foregroundColor(isHoveringTrash ? .red : .gray)
                     }
                     .buttonStyle(PlainButtonStyle())
                     .padding(.trailing, 5)
+                    .onHover { hovering in
+                        isHoveringTrash = hovering
+                    }
                 } else {
                     // Show a message or leave blank if no audio file
                     Text("No audio file selected")
