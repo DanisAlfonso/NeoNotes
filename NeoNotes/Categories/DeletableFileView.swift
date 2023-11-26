@@ -7,11 +7,9 @@
 
 import SwiftUI
 import AVFoundation
-import Combine
 
 struct DeletableFileView: View {
     @State private var isHovering = false
-//    @Binding var isPlaying: Bool
     @State var isPlaying = false
     var filename: String
     var onDelete: () -> Void
@@ -50,21 +48,3 @@ struct DeletableFileView: View {
     }
 }
 
-class AudioPlayer: NSObject, AVAudioPlayerDelegate {
-    var audioPlayer: AVAudioPlayer?
-    var didFinishPlaying = PassthroughSubject<Void, Never>()
-
-    func playAudio(url: URL) {
-        do {
-            audioPlayer = try AVAudioPlayer(contentsOf: url)
-            audioPlayer?.delegate = self
-            audioPlayer?.play()
-        } catch {
-            print("Could not play audio. Error: \(error.localizedDescription)")
-        }
-    }
-
-    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
-        didFinishPlaying.send()
-    }
-}

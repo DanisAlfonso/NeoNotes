@@ -26,7 +26,6 @@ struct AddFlashcardView: View {
     
     @State private var questionAudioFilename: String = ""
     @State private var answerAudioFilename: String = ""
-    //@State private var isPlaying = false
     @State private var audioPlayer: AVAudioPlayer?
 
     var body: some View {
