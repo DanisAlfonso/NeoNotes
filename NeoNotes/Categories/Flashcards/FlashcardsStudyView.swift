@@ -263,10 +263,31 @@ class FlashcardViewModel: ObservableObject {
         }
     }
 
-    func updateFlashcard(question: String, answer: String) {
+    func updateFlashcard(question: String, answer: String, questionAudio: String?, answerAudio: String?) {
         flashcard?.question = question
         flashcard?.answer = answer
+        flashcard?.questionAudioFilename = questionAudio ?? ""
+        flashcard?.answerAudioFilename = answerAudio ?? ""
+        
+        if questionAudio == nil {
+            deleteAudioFromDocuments(filename: flashcard?.questionAudioFilename)
+        }
+        if answerAudio == nil {
+            deleteAudioFromDocuments(filename: flashcard?.answerAudioFilename)
+        }
         saveFlashcard()
+    }
+    
+    private func deleteAudioFromDocuments(filename: String?) {
+        guard let filename = filename, !filename.isEmpty else { return }
+        let fileManager = FileManager.default
+        let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let fileURL = documentsDirectory.appendingPathComponent(filename)
+        do {
+            try fileManager.removeItem(at: fileURL)
+        } catch {
+            print("Failed to delete audio file: \(error.localizedDescription)")
+        }
     }
 }
 
