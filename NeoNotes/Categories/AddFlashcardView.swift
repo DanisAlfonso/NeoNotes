@@ -151,6 +151,7 @@ struct AddFlashcardView: View {
         newFlashcard.creationDate = Date()
         newFlashcard.question = flashcardQuestion
         newFlashcard.answer = flashcardAnswer
+        newFlashcard.due = Date()
 
         // Find or create the category
         let category = findOrCreateCategory(named: categoryName, in: deck)
@@ -237,30 +238,6 @@ struct AddFlashcardView: View {
         }
     }
 
-//    private func playAudio(filename: String? = nil, url: URL? = nil) {
-//        let fileURL: URL
-//
-//        if let filename = filename {
-//            let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-//            fileURL = documentsDirectory.appendingPathComponent(filename)
-//        } else if let url = url {
-//            fileURL = url
-//        } else {
-//            print("No audio file specified")
-//            return
-//        }
-//
-//        if FileManager.default.fileExists(atPath: fileURL.path) {
-//            do {
-//                audioPlayer = try AVAudioPlayer(contentsOf: fileURL)
-//                audioPlayer?.play()
-//            } catch {
-//                print("Could not play audio. Error: \(error.localizedDescription)")
-//            }
-//        } else {
-//            print("Audio file does not exist at path: \(fileURL.path)")
-//        }
-//    }
     private func playAudio(filename: String? = nil, url: URL? = nil) {
         let fileURL: URL
 

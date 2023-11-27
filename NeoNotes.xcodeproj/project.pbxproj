@@ -20,6 +20,8 @@
 		3080A3572B1107C600FDE7FA /* AddFlashcardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3080A3562B1107C500FDE7FA /* AddFlashcardView.swift */; };
 		30CE97A62B12504E00CADCCD /* EditFlashcardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30CE97A52B12504E00CADCCD /* EditFlashcardView.swift */; };
 		30CE97A82B126B1000CADCCD /* DeletableFileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30CE97A72B126B1000CADCCD /* DeletableFileView.swift */; };
+		30EEF5302B14CDE60025DB3E /* Flashcard+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30EEF52E2B14CDE60025DB3E /* Flashcard+CoreDataClass.swift */; };
+		30EEF5312B14CDE60025DB3E /* Flashcard+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30EEF52F2B14CDE60025DB3E /* Flashcard+CoreDataProperties.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -38,6 +40,8 @@
 		3080A3562B1107C500FDE7FA /* AddFlashcardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFlashcardView.swift; sourceTree = "<group>"; };
 		30CE97A52B12504E00CADCCD /* EditFlashcardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditFlashcardView.swift; sourceTree = "<group>"; };
 		30CE97A72B126B1000CADCCD /* DeletableFileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeletableFileView.swift; sourceTree = "<group>"; };
+		30EEF52E2B14CDE60025DB3E /* Flashcard+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "Flashcard+CoreDataClass.swift"; path = "NeoNotes/Flashcard+CoreDataClass.swift"; sourceTree = "<group>"; };
+		30EEF52F2B14CDE60025DB3E /* Flashcard+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "Flashcard+CoreDataProperties.swift"; path = "NeoNotes/Flashcard+CoreDataProperties.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -64,6 +68,8 @@
 		3043AA652B0CE0C40085477F = {
 			isa = PBXGroup;
 			children = (
+				30EEF52E2B14CDE60025DB3E /* Flashcard+CoreDataClass.swift */,
+				30EEF52F2B14CDE60025DB3E /* Flashcard+CoreDataProperties.swift */,
 				3043AA702B0CE0C40085477F /* NeoNotes */,
 				3043AA6F2B0CE0C40085477F /* Products */,
 			);
@@ -182,12 +188,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				30EEF5302B14CDE60025DB3E /* Flashcard+CoreDataClass.swift in Sources */,
 				3043AA742B0CE0C40085477F /* ContentView.swift in Sources */,
 				3080A3272B0EA73D00FDE7FA /* CategoriesView.swift in Sources */,
 				3043AA722B0CE0C40085477F /* NeoNotesApp.swift in Sources */,
 				3043AA842B0CE2390085477F /* FlashCardEngine.swift in Sources */,
 				3080A3572B1107C600FDE7FA /* AddFlashcardView.swift in Sources */,
 				30CE97A62B12504E00CADCCD /* EditFlashcardView.swift in Sources */,
+				30EEF5312B14CDE60025DB3E /* Flashcard+CoreDataProperties.swift in Sources */,
 				30CE97A82B126B1000CADCCD /* DeletableFileView.swift in Sources */,
 				3080A3552B10E47B00FDE7FA /* DocumentPicker.swift in Sources */,
 				3043AA822B0CE0DC0085477F /* NeoNotesModel.xcdatamodeld in Sources */,

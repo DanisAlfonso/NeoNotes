@@ -25,7 +25,12 @@ struct FlashcardsStudyView: View {
         animation: .default)
     private var flashcards: FetchedResults<Flashcard>
     
-
+    init(category: Category) {
+        self.category = category
+        print("Selected category: \(category.name ?? "Unknown")")
+        // Rest of the initialization
+    }
+    
     var body: some View {
         VStack {
             if let flashcard = flashcards.first(where: { $0.category == category && ($0.due ?? Date()) <= Date() }) {
@@ -242,8 +247,14 @@ class FlashcardViewModel: ObservableObject {
         
         do {
             let results = try viewContext.fetch(request)
-            DispatchQueue.main.async {
-                self.flashcard = results.first
+            if let flashcard = results.first {
+                DispatchQueue.main.async {
+                    self.flashcard = flashcard
+                }
+            } else {
+                DispatchQueue.main.async {
+                    self.flashcard = nil
+                }
             }
         } catch {
             print("Error fetching flashcards: \(error)")
@@ -274,6 +285,7 @@ class FlashcardViewModel: ObservableObject {
     }
 
     func updateFlashcard(question: String, answer: String, questionAudio: String?, answerAudio: String?) {
+        print("Updating flashcard with question: \(question), answer: \(answer)")
         flashcard?.question = question
         flashcard?.answer = answer
         flashcard?.questionAudioFilename = questionAudio ?? ""
@@ -299,5 +311,35 @@ class FlashcardViewModel: ObservableObject {
             print("Failed to delete audio file: \(error.localizedDescription)")
         }
     }
+    
+//    func debugPrintFlashcardsDueDates(for category: Category) {
+//        let request: NSFetchRequest<Flashcard> = Flashcard.fetchRequest()
+//        request.predicate = NSPredicate(format: "category == %@", category)
+//        request.sortDescriptors = [NSSortDescriptor(keyPath: \Flashcard.due, ascending: true)]
+//        
+//        do {
+//            let results = try viewContext.fetch(request)
+//            print("Debugging Flashcards for category: \(category.name ?? "Unknown")")
+//            if results.isEmpty {
+//                print("No flashcards found in this category.")
+//            } else {
+//                for flashcard in results {
+//                    print("Flashcard ID: \(flashcard.id?.uuidString ?? "No ID")")
+//                    if let question = flashcard.question {
+//                        print("Question: \(question)")
+//                    } else {
+//                        print("Flashcard is missing a question.")
+//                    }
+//                    if let dueDate = flashcard.due {
+//                        print("Due: \(dueDate)")
+//                    } else {
+//                        print("Flashcard is missing a due date.")
+//                    }
+//                }
+//            }
+//        } catch {
+//            print("Error fetching flashcards for debug: \(error)")
+//        }
+//    }
 }
 
