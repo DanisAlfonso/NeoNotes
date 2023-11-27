@@ -39,6 +39,9 @@ struct ContentView: View {
             NavigationLink(destination: SettingsView()) {
                 Label("Settings", systemImage: "gear")
             }
+            NavigationLink(destination: StatisticsView()) {
+                Label("Statistics", systemImage: "chart.bar")
+            }
             NavigationLink(destination: AccountView()) {
                 Label("Account", systemImage: "person.crop.circle")
             }
@@ -94,12 +97,18 @@ struct iPadSidebarView: View {
 
 struct AccountView: View {
     var body: some View {
-        Text("Account")
+        Text("Placeholder for Account")
+    }
+}
+
+struct StatisticsView: View {
+    var body: some View {
+        Text("Placeholder for Statistics")
     }
 }
 
 struct SettingsView: View {
     var body: some View {
-        Text("Settings")
+        Text("Placeholder for Settings")
     }
 }
