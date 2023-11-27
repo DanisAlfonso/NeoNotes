@@ -71,16 +71,34 @@ struct FlashcardsStudyView: View {
                     }
                 }
                 
-                if let _ = viewModel.flashcard {
+                if let flashcard = viewModel.flashcard {
+                    let nextDueDates = getNextDueDates(flashcard: flashcard)
+                    
                     HStack {
                         Spacer(minLength: 20)
-                        RatingButton(text: "Again", color: .red,    action: { rateFlashcard(rating: .Again) })
-                        RatingButton(text: "Hard",  color: .orange, action: { rateFlashcard(rating: .Hard)  })
-                        RatingButton(text: "Good",  color: .green,  action: { rateFlashcard(rating: .Good)  })
-                        RatingButton(text: "Easy",  color: .blue,   action: { rateFlashcard(rating: .Easy)  })
+                        ForEach([Rating.Again, Rating.Hard, Rating.Good, Rating.Easy], id: \.self) { rating in
+                            if let dueDate = nextDueDates[rating] {
+                                RatingButton(
+                                    text: rating.description,
+                                    subtitle: dueDate.formatted(), // Format the date here
+                                    color: colorForRating(rating),
+                                    action: { rateFlashcard(rating: rating) }
+                                )
+                            }
+                        }
                         Spacer(minLength: 20)
                     }
                 }
+//                if let _ = viewModel.flashcard {
+//                    HStack {
+//                        Spacer(minLength: 20)
+//                        RatingButton(text: "Again", color: .red,    action: { rateFlashcard(rating: .Again) })
+//                        RatingButton(text: "Hard",  color: .orange, action: { rateFlashcard(rating: .Hard)  })
+//                        RatingButton(text: "Good",  color: .green,  action: { rateFlashcard(rating: .Good)  })
+//                        RatingButton(text: "Easy",  color: .blue,   action: { rateFlashcard(rating: .Easy)  })
+//                        Spacer(minLength: 20)
+//                    }
+//                }
             } else {
                 Text("No flashcards to review.")
             }
@@ -161,10 +179,36 @@ struct FlashcardsStudyView: View {
     private func getDocumentsDirectory() -> URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
     }
+    
+    func getNextDueDates(flashcard: Flashcard) -> [Rating: Date] {
+        let card = flashcard.toCard()
+        let fsrsEngine = FSRS()
+        let schedulingInfo = fsrsEngine.repeat(card: card, now: Date())
+        
+        var nextDueDates: [Rating: Date] = [:]
+        for (rating, info) in schedulingInfo {
+            nextDueDates[rating] = info.card.due
+        }
+        return nextDueDates
+    }
+    
+    func colorForRating(_ rating: Rating) -> Color {
+        switch rating {
+        case .Again:
+            return Color.red
+        case .Hard:
+            return Color.orange
+        case .Good:
+            return Color.green
+        case .Easy:
+            return Color.blue
+        }
+    }
 }
 
 struct RatingButton: View {
     let text: String
+    let subtitle: String? // Date string
     let color: Color
     let action: () -> Void
     @State private var isPressed = false
@@ -178,16 +222,22 @@ struct RatingButton: View {
                 self.action()
             }
         }) {
-            Text(text)
-                .fontWeight(.bold)
-                .padding(.vertical, 13)
-                .padding(.horizontal, 15)
-                .frame(minWidth: 0, maxWidth: .infinity)
-                .background(color)
-                .foregroundColor(.white)
-                .cornerRadius(5)
-                .shadow(radius: isHovered ? 7 : 5)
-                .scaleEffect(isPressed ? 0.95 : 1.0)
+            VStack {
+                Text(text)
+                    .fontWeight(.bold)
+                if let subtitle = subtitle {
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+            }
+            .padding()
+            .frame(minWidth: 0, maxWidth: .infinity)
+            .background(color)
+            .foregroundColor(.white)
+            .cornerRadius(5)
+            .shadow(radius: isHovered ? 7 : 5)
+            .scaleEffect(isPressed ? 0.95 : 1.0)
         }
         .buttonStyle(PlainButtonStyle())
         .animation(.easeInOut, value: isPressed)
@@ -197,6 +247,7 @@ struct RatingButton: View {
         .opacity(isHovered ? 0.9 : 1.0)
     }
 }
+
 
 extension Flashcard {
     func toCard() -> Card {
