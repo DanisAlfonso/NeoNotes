@@ -24,6 +24,7 @@ struct FlashcardsStudyView: View {
         sortDescriptors: [NSSortDescriptor(keyPath: \Flashcard.due, ascending: true)],
         animation: .default)
     private var flashcards: FetchedResults<Flashcard>
+    
 
     var body: some View {
         VStack {
@@ -87,7 +88,7 @@ struct FlashcardsStudyView: View {
         }
         .sheet(isPresented: $isEditing) {
             EditFlashcardView(viewModel: viewModel)
-                .frame(minHeight: 400) 
+                .frame(minHeight: 400)
         }
         .toolbar {
             ToolbarItem(placement: .automatic) {
@@ -100,16 +101,7 @@ struct FlashcardsStudyView: View {
             }
         }
         .onAppear {
-            loadNextFlashcard(from: category)
-        }
-    }
-
-    private func loadNextFlashcard(from category: Category) {
-        let currentDate = Date()
-        if let nextFlashcard = category.flashcardsArray.first(where: { $0.due ?? currentDate <= currentDate }) {
-            viewModel.flashcard = nextFlashcard
-        } else {
-            viewModel.flashcard = nil
+            viewModel.loadNextFlashcard(from: category)
         }
     }
 
@@ -125,7 +117,8 @@ struct FlashcardsStudyView: View {
             flashcard.updateFromCard(updatedCard)
             saveContext()
 
-            loadNextFlashcard(from: category)
+            viewModel.loadNextFlashcard(from: category)
+            isFlipped = false
         }
     }
 
@@ -239,7 +232,24 @@ class FlashcardViewModel: ObservableObject {
     init(context: NSManagedObjectContext) {
         self.viewContext = context
     }
-
+    
+    func loadNextFlashcard(from category: Category) {
+        let currentDate = Date()
+        let request: NSFetchRequest<Flashcard> = Flashcard.fetchRequest()
+        request.predicate = NSPredicate(format: "category == %@ AND due <= %@", category, currentDate as CVarArg)
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \Flashcard.due, ascending: true)]
+        request.fetchLimit = 1
+        
+        do {
+            let results = try viewContext.fetch(request)
+            DispatchQueue.main.async {
+                self.flashcard = results.first
+            }
+        } catch {
+            print("Error fetching flashcards: \(error)")
+        }
+    }
+    
     func loadFlashcard(withID id: UUID) {
         let request: NSFetchRequest<Flashcard> = Flashcard.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
@@ -291,30 +301,3 @@ class FlashcardViewModel: ObservableObject {
     }
 }
 
-struct FlashcardsStudyView_Previews: PreviewProvider {
-    static var previews: some View {
-        let context = PersistenceController(inMemory: true).container.viewContext
-        let newCategory = Category(context: context)
-        newCategory.name = "Sample Category"
-
-        // Add some sample flashcards to the category
-        let flashcard1 = Flashcard(context: context)
-        flashcard1.question = "1 + 1"
-        flashcard1.answer = "2"
-        flashcard1.category = newCategory
-
-        let flashcard2 = Flashcard(context: context)
-        flashcard2.question = "2 + 2"
-        flashcard2.answer = "4"
-        flashcard2.category = newCategory
-        
-        let flashcard3 = Flashcard(context: context)
-        flashcard3.question = "3 + 3"
-        flashcard3.answer = "6"
-        flashcard3.category = newCategory
-
-        return FlashcardsStudyView(category: newCategory)
-            .environment(\.managedObjectContext, context)
-            .frame(width: 600, height: 500)
-    }
-}

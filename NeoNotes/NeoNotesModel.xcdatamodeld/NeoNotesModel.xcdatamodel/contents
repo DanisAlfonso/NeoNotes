@@ -14,7 +14,7 @@
         <attribute name="name" attributeType="String"/>
         <relationship name="categories" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Category" inverseName="deck" inverseEntity="Category"/>
     </entity>
-    <entity name="Flashcard" representedClassName="Flashcard" syncable="YES">
+    <entity name="Flashcard" representedClassName="Flashcard" syncable="YES" codeGenerationType="class">
         <attribute name="answer" attributeType="String"/>
         <attribute name="answerAudioFilename" optional="YES" attributeType="String"/>
         <attribute name="audioPath" optional="YES" attributeType="String"/>

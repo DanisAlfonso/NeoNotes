@@ -197,6 +197,7 @@ class SchedulingCards {
         easy.scheduledDays = easyInterval
         
         again.due = addTime(now, value: 5, unit: .minute)
+        print("Again due date set to: \(again.due)")
         if hardInterval > 0 {
             hard.due = addTime(now, value: hardInterval, unit: .day)
         } else {
