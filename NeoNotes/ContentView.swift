@@ -101,12 +101,6 @@ struct AccountView: View {
     }
 }
 
-struct StatisticsView: View {
-    var body: some View {
-        Text("Placeholder for Statistics")
-    }
-}
-
 struct SettingsView: View {
     var body: some View {
         Text("Placeholder for Settings")

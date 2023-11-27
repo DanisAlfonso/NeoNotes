@@ -6,6 +6,9 @@
         <attribute name="name" attributeType="String"/>
         <relationship name="deck" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Deck" inverseName="categories" inverseEntity="Deck"/>
         <relationship name="flashcards" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Flashcard" inverseName="category" inverseEntity="Flashcard"/>
+        <relationship name="parentCategory" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Category" inverseName="subcategories" inverseEntity="Category"/>
+        <relationship name="studySessions" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="StudySession" inverseName="category" inverseEntity="StudySession"/>
+        <relationship name="subcategories" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Category" inverseName="parentCategory" inverseEntity="Category"/>
     </entity>
     <entity name="Deck" representedClassName="Deck" syncable="YES" codeGenerationType="class">
         <attribute name="backgroundName" optional="YES" attributeType="String"/>
@@ -13,8 +16,9 @@
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="name" attributeType="String"/>
         <relationship name="categories" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Category" inverseName="deck" inverseEntity="Category"/>
+        <relationship name="studySessions" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="StudySession" inverseName="deck" inverseEntity="StudySession"/>
     </entity>
-    <entity name="Flashcard" representedClassName="Flashcard" syncable="YES">
+    <entity name="Flashcard" representedClassName="Flashcard" syncable="YES" codeGenerationType="class">
         <attribute name="answer" attributeType="String"/>
         <attribute name="answerAudioFilename" optional="YES" attributeType="String"/>
         <attribute name="audioPath" optional="YES" attributeType="String"/>
@@ -31,5 +35,15 @@
         <attribute name="stability" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="status" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <relationship name="category" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Category" inverseName="flashcards" inverseEntity="Category"/>
+        <relationship name="studySessions" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="StudySession" inverseName="flashcards" inverseEntity="StudySession"/>
+    </entity>
+    <entity name="StudySession" representedClassName="StudySession" syncable="YES" codeGenerationType="class">
+        <attribute name="duration" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="endTime" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="startTime" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="category" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Category" inverseName="studySessions" inverseEntity="Category"/>
+        <relationship name="deck" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Deck" inverseName="studySessions" inverseEntity="Deck"/>
+        <relationship name="flashcards" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Flashcard" inverseName="studySessions" inverseEntity="Flashcard"/>
     </entity>
 </model>

@@ -15,6 +15,8 @@ struct FlashcardsStudyView: View {
     @State private var audioPlayer: AVAudioPlayer?
     @State private var isFlipped = false
     @State private var isEditing = false
+    @State private var currentStudySession: StudySession?
+
     @ObservedObject var viewModel = FlashcardViewModel(context: PersistenceController.shared.container.viewContext)
     
     var category: Category
@@ -89,16 +91,6 @@ struct FlashcardsStudyView: View {
                         Spacer(minLength: 20)
                     }
                 }
-//                if let _ = viewModel.flashcard {
-//                    HStack {
-//                        Spacer(minLength: 20)
-//                        RatingButton(text: "Again", color: .red,    action: { rateFlashcard(rating: .Again) })
-//                        RatingButton(text: "Hard",  color: .orange, action: { rateFlashcard(rating: .Hard)  })
-//                        RatingButton(text: "Good",  color: .green,  action: { rateFlashcard(rating: .Good)  })
-//                        RatingButton(text: "Easy",  color: .blue,   action: { rateFlashcard(rating: .Easy)  })
-//                        Spacer(minLength: 20)
-//                    }
-//                }
             } else {
                 Text("No flashcards to review.")
             }
@@ -119,6 +111,10 @@ struct FlashcardsStudyView: View {
         }
         .onAppear {
             viewModel.loadNextFlashcard(from: category)
+            startStudySession()
+        }
+        .onDisappear {
+            endStudySession()
         }
     }
 
@@ -204,6 +200,26 @@ struct FlashcardsStudyView: View {
             return Color.blue
         }
     }
+    
+    func startStudySession() {
+        let newSession = StudySession(context: viewContext)
+        newSession.id = UUID()
+        newSession.startTime = Date()
+        currentStudySession = newSession
+    }
+
+    func endStudySession() {
+        guard let session = currentStudySession else { return }
+        session.endTime = Date()
+        session.duration = session.endTime?.timeIntervalSince(session.startTime ?? Date()) ?? 0
+        currentStudySession = nil
+        do {
+            try viewContext.save()
+        } catch {
+            print("Error saving study session: \(error)")
+        }
+    }
+
 }
 
 struct RatingButton: View {
@@ -357,4 +373,3 @@ class FlashcardViewModel: ObservableObject {
         }
     }
 }
-
