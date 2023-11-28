@@ -16,9 +16,7 @@ struct CategoriesView: View {
     var body: some View {
         List {
             ForEach(deck.categoriesArray, id: \.self) { category in
-                NavigationLink(destination: FlashcardsStudyView(category: category)) {
-                    Text(category.name ?? "Untitled")
-                }
+                CategoryRow(category: category)
                 .contextMenu {
                     Button(action: {
                         deleteCategory(category)
@@ -57,6 +55,25 @@ struct CategoriesView: View {
     }
 }
 
+struct CategoryRow: View {
+    var category: Category
+
+    var body: some View {
+        NavigationLink(destination: FlashcardsStudyView(category: category)) {
+            HStack {
+                Image(systemName: "folder")
+                    .foregroundColor(.accentColor)
+                Text(category.name ?? "Untitled")
+                    .fontWeight(.medium)
+                Spacer()
+                Text("\(category.flashcardsArray.count) cards")
+                    .foregroundColor(.secondary)
+                    .font(.subheadline)
+            }
+            .padding(.vertical, 4)
+        }
+    }
+}
 
 // Extend Deck to have a computed property to convert categories Set to Array
 extension Deck {
