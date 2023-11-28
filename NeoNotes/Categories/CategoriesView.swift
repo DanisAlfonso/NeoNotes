@@ -19,8 +19,14 @@ struct CategoriesView: View {
                 NavigationLink(destination: FlashcardsStudyView(category: category)) {
                     Text(category.name ?? "Untitled")
                 }
+                .contextMenu {
+                    Button(action: {
+                        deleteCategory(category)
+                    }) {
+                        Label("Delete Category", systemImage: "trash")
+                    }
+                }
             }
-            .onDelete(perform: deleteCategories)
         }
         .navigationTitle("Categories in \(deck.name ?? "Deck")")
         .toolbar {
@@ -37,9 +43,17 @@ struct CategoriesView: View {
             AddFlashcardView(isPresented: $showingAddFlashcard, deck: deck)
         }
     }
-
-    private func deleteCategories(offsets: IndexSet) {
-        // Implement deletion logic for categories
+    
+    private func deleteCategory(_ category: Category) {
+        withAnimation {
+            viewContext.delete(category)
+            do {
+                try viewContext.save()
+            } catch {
+                // Handle the error appropriately
+                print("Error deleting category: \(error.localizedDescription)")
+            }
+        }
     }
 }
 
