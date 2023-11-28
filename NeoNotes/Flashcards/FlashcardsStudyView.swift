@@ -15,8 +15,15 @@ struct FlashcardsStudyView: View {
     @State private var audioPlayer: AVAudioPlayer?
     @State private var isFlipped = false
     @State private var isEditing = false
+    
     @State private var currentStudySession: StudySession?
     @State private var reviewedFlashcardsCount: Int = 0
+    
+    @State private var countAgain: Int = 0
+    @State private var countHard: Int = 0
+    @State private var countGood: Int = 0
+    @State private var countEasy: Int = 0
+
 
 
     @ObservedObject var viewModel = FlashcardViewModel(context: PersistenceController.shared.container.viewContext)
@@ -135,6 +142,17 @@ struct FlashcardsStudyView: View {
             viewModel.loadNextFlashcard(from: category)
             isFlipped = false
             reviewedFlashcardsCount += 1
+            
+            switch rating {
+                case .Again:
+                    countAgain += 1
+                case .Hard:
+                    countHard += 1
+                case .Good:
+                    countGood += 1
+                case .Easy:
+                    countEasy += 1
+            }
         }
     }
 
@@ -217,8 +235,20 @@ struct FlashcardsStudyView: View {
         session.endTime = Date()
         session.duration = session.endTime?.timeIntervalSince(session.startTime ?? Date()) ?? 0
         session.cardsReviewed = Int64(reviewedFlashcardsCount)
+        
+        session.countAgain = Int64(countAgain)
+        session.countHard = Int64(countHard)
+        session.countGood = Int64(countGood)
+        session.countEasy = Int64(countEasy)
+
         currentStudySession = nil
         reviewedFlashcardsCount = 0
+        countAgain = 0
+        countHard = 0
+        countGood = 0
+        countEasy = 0
+        
+        
         do {
             try viewContext.save()
         } catch {

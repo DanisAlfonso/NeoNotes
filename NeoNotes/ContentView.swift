@@ -36,14 +36,14 @@ struct ContentView: View {
             NavigationLink(destination: DecksView()) {
                 Label("Decks", systemImage: "rectangle.stack")
             }
-            NavigationLink(destination: SettingsView()) {
-                Label("Settings", systemImage: "gear")
-            }
             NavigationLink(destination: StatisticsView()) {
                 Label("Statistics", systemImage: "chart.bar")
             }
             NavigationLink(destination: AccountView()) {
                 Label("Account", systemImage: "person.crop.circle")
+            }
+            NavigationLink(destination: SettingsView()) {
+                Label("Settings", systemImage: "gear")
             }
         }
         .listStyle(SidebarListStyle())
