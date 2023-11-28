@@ -23,7 +23,7 @@ struct CategoriesView: View {
                     Button(action: {
                         deleteCategory(category)
                     }) {
-                        Label("Delete Category", systemImage: "trash")
+                        Label("Delete \(category.name ?? "Category")", systemImage: "trash")
                     }
                 }
             }
