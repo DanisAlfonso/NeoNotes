@@ -16,6 +16,8 @@ struct FlashcardsStudyView: View {
     @State private var isFlipped = false
     @State private var isEditing = false
     @State private var currentStudySession: StudySession?
+    @State private var reviewedFlashcardsCount: Int = 0
+
 
     @ObservedObject var viewModel = FlashcardViewModel(context: PersistenceController.shared.container.viewContext)
     
@@ -132,6 +134,7 @@ struct FlashcardsStudyView: View {
 
             viewModel.loadNextFlashcard(from: category)
             isFlipped = false
+            reviewedFlashcardsCount += 1
         }
     }
 
@@ -206,20 +209,22 @@ struct FlashcardsStudyView: View {
         newSession.id = UUID()
         newSession.startTime = Date()
         currentStudySession = newSession
+        reviewedFlashcardsCount = 0
     }
 
     func endStudySession() {
         guard let session = currentStudySession else { return }
         session.endTime = Date()
         session.duration = session.endTime?.timeIntervalSince(session.startTime ?? Date()) ?? 0
+        session.cardsReviewed = Int64(reviewedFlashcardsCount)
         currentStudySession = nil
+        reviewedFlashcardsCount = 0
         do {
             try viewContext.save()
         } catch {
             print("Error saving study session: \(error)")
         }
     }
-
 }
 
 struct RatingButton: View {

@@ -16,49 +16,65 @@ struct StatisticsView: View {
         animation: .default)
     private var studySessions: FetchedResults<StudySession>
 
-    var body: some View {
-        VStack {
-            Text("Study Session Durations")
-                .font(.title)
-                .padding()
+    @Environment(\.calendar) var calendar
+    @Environment(\.locale) var locale
 
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading) {
+                studySessionDurationChart
+                numberOfCardsReviewedChart
+            }
+            .padding(.leading)
+        }
+    }
+
+    private var studySessionDurationChart: some View {
+        VStack {
+            chartTitle("Study Session Durations")
             Chart {
                 ForEach(studySessions, id: \.self) { session in
                     if let startTime = session.startTime {
                         BarMark(
                             x: .value("Date", formattedDate(startTime)),
-                            y: .value("Duration", session.duration / 60) // Assuming duration is in seconds, converting to minutes
+                            y: .value("Duration", session.duration / 60) // Convert to minutes
                         )
-                        .foregroundStyle(by: .value("Date", formattedDate(startTime)))
+                        .foregroundStyle(.blue)
                         .annotation(position: .top, alignment: .center) {
                             Text("\(Int(session.duration / 60)) min")
-                                .font(.caption)
                         }
                     }
                 }
             }
-            .chartXAxis {
-                AxisMarks(values: .stride(by: Calendar.Component.day)) { _ in
-                    AxisGridLine()
-                    AxisTick()
-                    AxisValueLabel(format: .dateTime.weekday(.abbreviated))
-                }
-            }
-            .chartYAxis {
-                AxisMarks(position: .leading) { value in
-                    AxisGridLine()
-                    AxisTick()
-                    AxisValueLabel()
-                }
-            }
+            .frame(height: 200)
         }
-        .padding()
+    }
+
+    private var numberOfCardsReviewedChart: some View {
+        VStack {
+            chartTitle("Number of Cards Reviewed")
+            Chart {
+                ForEach(studySessions, id: \.self) { session in
+                    if let startTime = session.startTime {
+                        BarMark(
+                            x: .value("Date", formattedDate(startTime)),
+                            y: .value("Cards Reviewed", session.cardsReviewed)
+                        )
+                        .foregroundStyle(.green)
+                    }
+                }
+            }
+            .frame(height: 200)
+        }
+    }
+
+    private func chartTitle(_ text: String) -> some View {
+        Text(text)
+            .font(.headline)
+            .padding(.vertical)
     }
 
     private func formattedDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        return formatter.string(from: date)
+        DateFormatter.localizedString(from: date, dateStyle: .medium, timeStyle: .none)
     }
 }
-

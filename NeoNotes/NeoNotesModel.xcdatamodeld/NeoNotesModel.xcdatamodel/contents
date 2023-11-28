@@ -38,6 +38,7 @@
         <relationship name="studySessions" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="StudySession" inverseName="flashcards" inverseEntity="StudySession"/>
     </entity>
     <entity name="StudySession" representedClassName="StudySession" syncable="YES" codeGenerationType="class">
+        <attribute name="cardsReviewed" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="duration" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="endTime" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
