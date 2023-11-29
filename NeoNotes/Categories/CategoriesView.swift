@@ -61,6 +61,8 @@ struct CategoryRow: View {
     var category: Category
     @State private var navigateToStudy = false
     @State private var isHovering = false
+    @State private var isNameHovering = false
+
 
     var body: some View {
         HStack {
@@ -70,11 +72,19 @@ struct CategoryRow: View {
                         .foregroundColor(.accentColor)
                     Text(category.name ?? "Untitled")
                         .fontWeight(.medium)
+                        .padding(3)
+                        .background(isNameHovering ? Color.gray.opacity(0.2) : Color.clear)
+                        .cornerRadius(5)
+                    
                     Spacer()
                     Text("\(category.flashcardsArray.count) cards")
                         .foregroundColor(.secondary)
                         .font(.subheadline)
                 }
+                .onHover { hovering in
+                    isNameHovering = hovering
+                }
+
             }
             .buttonStyle(PlainButtonStyle())
             
@@ -86,6 +96,10 @@ struct CategoryRow: View {
             .background(isHovering ? Color.accentColor : Color.clear)
             .foregroundColor(isHovering ? Color.white : Color.accentColor)
             .cornerRadius(10)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8) // You can adjust the corner radius
+                    .stroke(isHovering ? Color.accentColor : Color.clear, lineWidth: 1) // Adjust line width for subtlety
+            )
             .onHover { hovering in
                 isHovering = hovering
             }
@@ -116,4 +130,3 @@ extension Category {
         return set.sorted { $0.creationDate ?? Date() < $1.creationDate ?? Date() }
     }
 }
-
