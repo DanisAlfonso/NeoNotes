@@ -60,6 +60,7 @@ struct CategoriesView: View {
 struct CategoryRow: View {
     var category: Category
     @State private var navigateToStudy = false
+    @State private var isHovering = false
 
     var body: some View {
         HStack {
@@ -81,7 +82,13 @@ struct CategoryRow: View {
                 navigateToStudy = true
             }
             .buttonStyle(BorderlessButtonStyle())
-            // Navigation for "Study now" button
+            .padding(8)
+            .background(isHovering ? Color.accentColor : Color.clear)
+            .foregroundColor(isHovering ? Color.white : Color.blue)
+            .cornerRadius(10)
+            .onHover { hovering in
+                isHovering = hovering
+            }
             NavigationLink(destination: FlashcardsStudyView(category: category), isActive: $navigateToStudy) {
                 EmptyView()
             }
