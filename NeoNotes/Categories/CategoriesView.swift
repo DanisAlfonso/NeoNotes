@@ -66,7 +66,7 @@ struct CategoryRow: View {
         HStack {
             NavigationLink(destination: FlashcardsListView(category: category)) {
                 HStack {
-                    Image(systemName: "folder")
+                    Image(systemName: "book.closed")
                         .foregroundColor(.accentColor)
                     Text(category.name ?? "Untitled")
                         .fontWeight(.medium)
