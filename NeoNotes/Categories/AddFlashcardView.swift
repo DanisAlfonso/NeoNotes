@@ -31,29 +31,41 @@ struct AddFlashcardView: View {
     private var audioPlayerManager = AudioPlayerManager()
     @State private var isPlaying = false
     
+    @FocusState private var focusedField: FocusableField?
+    
     init(isPresented: Binding<Bool>, deck: Deck) {
-            _isPresented = isPresented
-            self.deck = deck
-            // Initialize other properties if necessary
-        }
+        _isPresented = isPresented
+        self.deck = deck
+        // Initialize other properties if necessary
+    }
+    
 
     var body: some View {
         VStack {
             TextField("Category", text: $categoryName)
+                .focused($focusedField, equals: .category)
+                .onSubmit { focusedField = .question }
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
             HStack {
                 VStack {
-                    Text("Question")
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.leading)
-                    TextEditor(text: $flashcardQuestion)
-                                    .frame(minHeight: 50, maxHeight: .infinity)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 5)
-                                            .stroke(Color.gray, lineWidth: 1)
-                                    )
-                                    .padding(.horizontal)
+                    TextField("Question", text: $flashcardQuestion)
+                        .focused($focusedField, equals: .question)
+                        .onSubmit { focusedField = .answer}
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                    
+//                    Text("Question")
+//                        .frame(maxWidth: .infinity, alignment: .leading)
+//                        .padding(.leading)
+//                    TextEditor(text: $flashcardQuestion)
+//                        .focused($focusedField, equals: .question)
+//                        .onSubmit { focusedField = .answer}
+//                        .frame(minHeight: 50, maxHeight: .infinity)
+//                        .overlay(
+//                            RoundedRectangle(cornerRadius: 5)
+//                                .stroke(Color.gray, lineWidth: 1)
+//                        )
+//                        .padding(.horizontal)
                     
                     if !questionAudioFilename.isEmpty {
                      
@@ -86,16 +98,22 @@ struct AddFlashcardView: View {
             
             HStack {
                 VStack {
-                    Text("Answer")
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.leading)
-                    TextEditor(text: $flashcardAnswer)
-                        .frame(minHeight: 50, maxHeight: .infinity)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 5)
-                                .stroke(Color.gray, lineWidth: 1)
-                        )
-                        .padding(.horizontal)
+                    TextField("Answer", text: $flashcardAnswer)
+                        .focused($focusedField, equals: .question)
+                        .onSubmit { focusedField = .category}
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                    
+//                    Text("Answer")
+//                        .frame(maxWidth: .infinity, alignment: .leading)
+//                        .padding(.leading)
+//                    TextEditor(text: $flashcardAnswer)
+//                        .focused($focusedField, equals: .answer)
+//                        .frame(minHeight: 50, maxHeight: .infinity)
+//                        .overlay(
+//                            RoundedRectangle(cornerRadius: 5)
+//                                .stroke(Color.gray, lineWidth: 1)
+//                        )
+//                        .padding(.horizontal)
                     
                     if !answerAudioFilename.isEmpty {
                         DeletableFileView(isPlaying: $isPlaying, filename: answerAudioFilename, onDelete: {
@@ -131,7 +149,7 @@ struct AddFlashcardView: View {
                 }
                 .padding()
                 .buttonStyle(.bordered)
-
+                
                 Button("Save") {
                     addFlashcard()
                     isPresented = false
@@ -298,4 +316,8 @@ struct AddFlashcardView: View {
 enum FieldType {
     case question
     case answer
+}
+
+enum FocusableField: Hashable {
+    case category, question, answer
 }
