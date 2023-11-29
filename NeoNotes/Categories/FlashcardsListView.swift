@@ -8,17 +8,47 @@
 import SwiftUI
 
 struct FlashcardsListView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    @FetchRequest var flashcards: FetchedResults<Flashcard>
     var category: Category
 
+    init(category: Category) {
+        self.category = category
+        // Assuming Flashcard has an attribute 'category' of type Category
+        self._flashcards = FetchRequest<Flashcard>(
+            entity: Flashcard.entity(),
+            sortDescriptors: [],
+            predicate: NSPredicate(format: "category == %@", category)
+        )
+    }
+
     var body: some View {
-        List(category.flashcardsArray, id: \.self) { flashcard in
-            FlashcardView(flashcard: flashcard)
+        List {
+            ForEach(flashcards, id: \.self) { flashcard in
+                FlashcardView(flashcard: flashcard)
+            }
+            .onDelete(perform: deleteFlashcard)
         }
         .navigationTitle("Flashcards in \(category.name ?? "Category")")
+    }
+
+    private func deleteFlashcard(at offsets: IndexSet) {
+        for index in offsets {
+            let flashcard = flashcards[index]
+            viewContext.delete(flashcard)
+        }
+
+        do {
+            try viewContext.save()
+        } catch {
+            // Handle the error appropriately
+            print("Error deleting flashcard: \(error.localizedDescription)")
+        }
     }
 }
 
 struct FlashcardView: View {
+    @Environment(\.managedObjectContext) private var viewContext
     let flashcard: Flashcard
     @State private var showAnswer = false
 
@@ -48,5 +78,17 @@ struct FlashcardView: View {
                 showAnswer.toggle()
             }
         }
+        .contextMenu {
+            Button(role: .destructive) {
+                deleteFlashcard(flashcard)
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+    }
+
+    private func deleteFlashcard(_ flashcard: Flashcard) {
+        viewContext.delete(flashcard)
+        try? viewContext.save()
     }
 }
