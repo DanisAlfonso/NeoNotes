@@ -110,14 +110,3 @@ extension Category {
     }
 }
 
-struct FlashcardsListView: View {
-    var category: Category
-
-    var body: some View {
-        List(category.flashcardsArray, id: \.self) { flashcard in
-            Text(flashcard.question ?? "Untitled")
-            // Additional details for each flashcard
-        }
-        .navigationTitle("Flashcards in \(category.name ?? "Category")")
-    }
-}
