@@ -14,31 +14,33 @@ struct CategoriesView: View {
     @State private var showingAddFlashcard = false
 
     var body: some View {
-        List {
-            ForEach(deck.categoriesArray, id: \.self) { category in
-                CategoryRow(category: category)
-                .contextMenu {
-                    Button(action: {
-                        deleteCategory(category)
-                    }) {
-                        Label("Delete \(category.name ?? "Category")", systemImage: "trash")
+        NavigationStack {
+            List {
+                ForEach(deck.categoriesArray, id: \.self) { category in
+                    CategoryRow(category: category)
+                    .contextMenu {
+                        Button(action: {
+                            deleteCategory(category)
+                        }) {
+                            Label("Delete \(category.name ?? "Category")", systemImage: "trash")
+                        }
                     }
                 }
             }
-        }
-        .navigationTitle("Categories in \(deck.name ?? "Deck")")
-        .toolbar {
-            ToolbarItem(placement: .automatic) { // Use 'automatic' for macOS
-                Button(action: {
-                    showingAddFlashcard.toggle()
-                }) {
-                    Label("Add Flashcard", systemImage: "plus")
+            .navigationTitle("Categories in \(deck.name ?? "Deck")")
+            .toolbar {
+                ToolbarItem(placement: .automatic) { // Use 'automatic' for macOS
+                    Button(action: {
+                        showingAddFlashcard.toggle()
+                    }) {
+                        Label("Add Flashcard", systemImage: "plus")
+                    }
                 }
             }
-        }
-        .sheet(isPresented: $showingAddFlashcard) {
-            // Present a view to add a new flashcard
-            AddFlashcardView(isPresented: $showingAddFlashcard, deck: deck)
+            .sheet(isPresented: $showingAddFlashcard) {
+                // Present a view to add a new flashcard
+                AddFlashcardView(isPresented: $showingAddFlashcard, deck: deck)
+            }
         }
     }
     
@@ -57,20 +59,33 @@ struct CategoriesView: View {
 
 struct CategoryRow: View {
     var category: Category
+    @State private var navigateToStudy = false
 
     var body: some View {
-        NavigationLink(destination: FlashcardsStudyView(category: category)) {
-            HStack {
-                Image(systemName: "folder")
-                    .foregroundColor(.accentColor)
-                Text(category.name ?? "Untitled")
-                    .fontWeight(.medium)
-                Spacer()
-                Text("\(category.flashcardsArray.count) cards")
-                    .foregroundColor(.secondary)
-                    .font(.subheadline)
+        HStack {
+            NavigationLink(destination: FlashcardsListView(category: category)) {
+                HStack {
+                    Image(systemName: "folder")
+                        .foregroundColor(.accentColor)
+                    Text(category.name ?? "Untitled")
+                        .fontWeight(.medium)
+                    Spacer()
+                    Text("\(category.flashcardsArray.count) cards")
+                        .foregroundColor(.secondary)
+                        .font(.subheadline)
+                }
             }
-            .padding(.vertical, 4)
+            .buttonStyle(PlainButtonStyle())
+            
+            Button("Study now") {
+                navigateToStudy = true
+            }
+            .buttonStyle(BorderlessButtonStyle())
+            // Navigation for "Study now" button
+            NavigationLink(destination: FlashcardsStudyView(category: category), isActive: $navigateToStudy) {
+                EmptyView()
+            }
+            .hidden()
         }
     }
 }
@@ -92,5 +107,17 @@ extension Category {
     var flashcardsArray: [Flashcard] {
         let set = flashcards as? Set<Flashcard> ?? []
         return set.sorted { $0.creationDate ?? Date() < $1.creationDate ?? Date() }
+    }
+}
+
+struct FlashcardsListView: View {
+    var category: Category
+
+    var body: some View {
+        List(category.flashcardsArray, id: \.self) { flashcard in
+            Text(flashcard.question ?? "Untitled")
+            // Additional details for each flashcard
+        }
+        .navigationTitle("Flashcards in \(category.name ?? "Category")")
     }
 }
