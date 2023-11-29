@@ -83,15 +83,15 @@ struct FlashcardView: View {
                 showAnswer.toggle()
             }
         }
+        .onHover { hover in
+            isHovered = hover
+        }
         .contextMenu {
             Button(role: .destructive) {
                 deleteFlashcard(flashcard)
             } label: {
                 Label("Delete", systemImage: "trash")
             }
-        }
-        .onHover { hover in
-            isHovered = hover
         }
     }
 
