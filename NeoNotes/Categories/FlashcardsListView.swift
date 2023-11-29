@@ -50,6 +50,7 @@ struct FlashcardView: View {
     @Environment(\.managedObjectContext) private var viewContext
     let flashcard: Flashcard
     @State private var showAnswer = false
+    @State private var isHovered = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -72,6 +73,11 @@ struct FlashcardView: View {
             }
         }
         .padding()
+        .background(isHovered ? Color.gray.opacity(0.1) : Color.clear)
+        .cornerRadius(8)
+        .scaleEffect(isHovered ? 1.05 : 1)
+        .animation(.easeInOut(duration: 0.2), value: isHovered)
+        .shadow(radius: isHovered ? 5 : 0)
         .onTapGesture {
             withAnimation {
                 showAnswer.toggle()
@@ -83,6 +89,9 @@ struct FlashcardView: View {
             } label: {
                 Label("Delete", systemImage: "trash")
             }
+        }
+        .onHover { hover in
+            isHovered = hover
         }
     }
 

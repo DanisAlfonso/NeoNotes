@@ -218,3 +218,4 @@ let gradientOptions: [String: Gradient] = [
     "Berry": Gradient(colors: [Color.pink.opacity(0.7), Color.purple.opacity(0.7)]),
     "Default": Gradient(colors: [Color.blue.opacity(0.7), Color.purple.opacity(0.7)])
 ]
+
