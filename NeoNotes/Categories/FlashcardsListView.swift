@@ -23,9 +23,9 @@ struct FlashcardView: View {
     @State private var showAnswer = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Image(systemName: "questionmark.circle")
+                Image(systemName: "lightbulb")
                     .foregroundColor(.blue)
                 Text(flashcard.question ?? "Untitled")
                     .fontWeight(.bold)
@@ -33,7 +33,7 @@ struct FlashcardView: View {
             
             if showAnswer {
                 HStack {
-                    Image(systemName: "checkmark.circle")
+                    Image(systemName: "bubble.right")
                         .foregroundColor(.green)
                     Text(flashcard.answer ?? "No answer")
                         .fontWeight(.regular)
@@ -47,19 +47,6 @@ struct FlashcardView: View {
             withAnimation {
                 showAnswer.toggle()
             }
-        }
-        .swipeActions {
-            Button(role: .destructive) {
-                // Add action to delete flashcard
-            } label: {
-                Label("Delete", systemImage: "trash")
-            }
-            Button {
-                // Add action to edit flashcard
-            } label: {
-                Label("Edit", systemImage: "pencil")
-            }
-            .tint(.blue)
         }
     }
 }
