@@ -14,7 +14,6 @@ struct FlashcardsListView: View {
 
     init(category: Category) {
         self.category = category
-        // Assuming Flashcard has an attribute 'category' of type Category
         self._flashcards = FetchRequest<Flashcard>(
             entity: Flashcard.entity(),
             sortDescriptors: [],
