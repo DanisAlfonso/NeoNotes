@@ -84,7 +84,7 @@ struct CategoryRow: View {
             .buttonStyle(BorderlessButtonStyle())
             .padding(8)
             .background(isHovering ? Color.accentColor : Color.clear)
-            .foregroundColor(isHovering ? Color.white : Color.blue)
+            .foregroundColor(isHovering ? Color.white : Color.accentColor)
             .cornerRadius(10)
             .onHover { hovering in
                 isHovering = hovering
