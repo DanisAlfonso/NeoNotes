@@ -11,11 +11,21 @@ import CoreData
 @main
 struct NeoNotesApp: App {
     let persistenceController = PersistenceController.shared
+    @StateObject var viewModel = AppViewModel()
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                .environmentObject(viewModel)
+        }
+        .commands {
+            CommandGroup(replacing: .newItem) {
+                Button("New Deck") {
+                    viewModel.createNewDeck()
+                }
+                .keyboardShortcut("n", modifiers: .command)
+            }
         }
     }
 }
@@ -55,4 +65,12 @@ extension PersistenceController {
 
         return controller
     }()
+}
+
+class AppViewModel: ObservableObject {
+    @Published var showingAddDeck = false
+
+    func createNewDeck() {
+        showingAddDeck = true
+    }
 }

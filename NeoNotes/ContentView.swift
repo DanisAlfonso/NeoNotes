@@ -8,27 +8,33 @@
 import SwiftUI
 
 struct ContentView: View {
+    @EnvironmentObject var viewModel: AppViewModel
     @State private var isSidebarVisible = true
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     #endif
 
     var body: some View {
-        #if os(macOS)
-        NavigationSplitView(sidebar: {
-            sidebar
-        }, detail: {
-            DecksView()
-        })
-        .navigationSplitViewStyle(.balanced)
-
-        #else
-        if horizontalSizeClass == .compact {
-            iPhoneTabView()
-        } else {
-            iPadSidebarView()
+        Group {
+            #if os(macOS)
+            NavigationSplitView(sidebar: {
+                sidebar
+            }, detail: {
+                DecksView()
+            })
+            .navigationSplitViewStyle(.balanced)
+            
+            #else
+            if horizontalSizeClass == .compact {
+                iPhoneTabView()
+            } else {
+                iPadSidebarView()
+            }
+            #endif
         }
-        #endif
+        .sheet(isPresented: $viewModel.showingAddDeck) {
+            AddDeckView(isPresented: $viewModel.showingAddDeck)
+        }
     }
     
     private var sidebar: some View {
