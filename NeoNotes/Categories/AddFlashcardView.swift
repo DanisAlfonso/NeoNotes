@@ -12,8 +12,13 @@ import UniformTypeIdentifiers
 
 struct AddFlashcardView: View {
     @Binding var isPresented: Bool
+    @FocusState private var focusedField: FocusableField? {
+        didSet {
+            print("Focused field is now: \(String(describing: focusedField))")
+        }
+    }
     @Environment(\.managedObjectContext) private var viewContext
-    var deck: Deck
+    var deck: Deck?
     @State private var deckName = ""
     @State private var flashcardQuestion = ""
     @State private var flashcardAnswer = ""
@@ -32,17 +37,10 @@ struct AddFlashcardView: View {
     private var audioPlayerManager = AudioPlayerManager()
     @State private var isPlaying = false
     
-    @FocusState private var focusedField: FocusableField?
-    
-//    init(isPresented: Binding<Bool>, deck: Deck) {
-//        _isPresented = isPresented
-//        self.deck = deck
-//        // Initialize other properties if necessary
-//    }
-    init(isPresented: Binding<Bool>, deck: Deck) {
+    init(isPresented: Binding<Bool>, deck: Deck?) {
         _isPresented = isPresented
         self.deck = deck
-        _deckName = State(initialValue: deck.name ?? "")
+        _deckName = State(initialValue: deck?.name ?? "")
     }
 
     var body: some View {
@@ -117,9 +115,13 @@ struct AddFlashcardView: View {
             HStack {
                 VStack {
                     TextField("Answer", text: $flashcardAnswer)
-                        .focused($focusedField, equals: .question)
-                        .onSubmit { focusedField = .category}
+                        .focused($focusedField, equals: .answer)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .onSubmit {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                focusedField = .save
+                            }
+                        }
                     
 //                    Text("Answer")
 //                        .frame(maxWidth: .infinity, alignment: .leading)
@@ -172,6 +174,7 @@ struct AddFlashcardView: View {
                     addFlashcard()
                     isPresented = false
                 }
+                .focused($focusedField, equals: .save)
                 .disabled(flashcardQuestion.isEmpty || flashcardAnswer.isEmpty)
                 .buttonStyle(.borderedProminent)
                 .padding()
@@ -190,12 +193,11 @@ struct AddFlashcardView: View {
         newFlashcard.answer = flashcardAnswer
         newFlashcard.due = Date()
         
-        // Check if the entered deck name is different from the current deck
-        if deckName != deck.name {
-            // Find or create a new deck with the entered name
-            targetDeck = findOrCreateDeck(named: deckName)
-        } else {
+        // If no deck name is provided, use the existing deck, else find or create a new deck
+        if let deck = deck, deckName.isEmpty {
             targetDeck = deck
+        } else {
+            targetDeck = findOrCreateDeck(named: deckName)
         }
 
         // Find or create the category
@@ -361,5 +363,5 @@ enum FieldType {
 }
 
 enum FocusableField: Hashable {
-    case category, question, answer
+    case category, question, answer, save
 }

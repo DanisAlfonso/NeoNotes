@@ -35,6 +35,9 @@ struct ContentView: View {
         .sheet(isPresented: $viewModel.showingAddDeck) {
             AddDeckView(isPresented: $viewModel.showingAddDeck)
         }
+        .sheet(isPresented: $viewModel.showingAddFlashcard) {
+            AddFlashcardView(isPresented: $viewModel.showingAddFlashcard, deck: nil)
+        }
     }
     
     private var sidebar: some View {

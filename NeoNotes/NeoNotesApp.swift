@@ -18,14 +18,37 @@ struct NeoNotesApp: App {
             ContentView()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .environmentObject(viewModel)
+            
         }
         .commands {
+            
             CommandGroup(replacing: .newItem) {
                 Button("New Deck") {
                     viewModel.createNewDeck()
                 }
                 .keyboardShortcut("n", modifiers: .command)
             }
+            
+            CommandGroup(after: CommandGroupPlacement.newItem) {
+                Button("Add Flashcard") {
+                    viewModel.triggerAddFlashcard()
+                }
+                .keyboardShortcut("n", modifiers: [.shift, .command])
+            }
+            
+            CommandGroup(after: CommandGroupPlacement.newItem) {
+                Button("Open NeoNotes Directory") {
+                    openNeoNotesDirectory()
+                }
+            }
+        }
+    }
+    
+    func openNeoNotesDirectory() {
+        if let url = persistenceController.container.persistentStoreDescriptions.first?.url?.deletingLastPathComponent() {
+            NSWorkspace.shared.open(url)
+        } else {
+            print("Could not find the NeoNotes directory.")
         }
     }
 }
@@ -69,8 +92,14 @@ extension PersistenceController {
 
 class AppViewModel: ObservableObject {
     @Published var showingAddDeck = false
+    @Published var showingAddFlashcard = false
 
     func createNewDeck() {
         showingAddDeck = true
     }
+    
+    func triggerAddFlashcard() {
+        showingAddFlashcard.toggle()
+    }
 }
+
