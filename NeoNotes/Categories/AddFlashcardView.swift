@@ -14,6 +14,7 @@ struct AddFlashcardView: View {
     @Binding var isPresented: Bool
     @Environment(\.managedObjectContext) private var viewContext
     var deck: Deck
+    @State private var deckName = ""
     @State private var flashcardQuestion = ""
     @State private var flashcardAnswer = ""
     @State private var categoryName = ""
@@ -33,20 +34,37 @@ struct AddFlashcardView: View {
     
     @FocusState private var focusedField: FocusableField?
     
+//    init(isPresented: Binding<Bool>, deck: Deck) {
+//        _isPresented = isPresented
+//        self.deck = deck
+//        // Initialize other properties if necessary
+//    }
     init(isPresented: Binding<Bool>, deck: Deck) {
         _isPresented = isPresented
         self.deck = deck
-        // Initialize other properties if necessary
+        _deckName = State(initialValue: deck.name ?? "")
     }
-    
 
     var body: some View {
         VStack {
+            Text("Deck & Category")
+                .font(.headline)
+                .foregroundColor(.accentColor)
+                .padding(.bottom, 2)
+            
+            TextField("Deck", text: $deckName)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding()
             TextField("Category", text: $categoryName)
                 .focused($focusedField, equals: .category)
                 .onSubmit { focusedField = .question }
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
+            
+            Text("Flashcard Details")
+                .font(.headline)
+                .foregroundColor(.accentColor)
+                .padding(.bottom, 2)
             HStack {
                 VStack {
                     TextField("Question", text: $flashcardQuestion)
@@ -164,15 +182,24 @@ struct AddFlashcardView: View {
     }
 
     private func addFlashcard() {
+        let targetDeck: Deck
         let newFlashcard = Flashcard(context: viewContext)
         newFlashcard.id = UUID()
         newFlashcard.creationDate = Date()
         newFlashcard.question = flashcardQuestion
         newFlashcard.answer = flashcardAnswer
         newFlashcard.due = Date()
+        
+        // Check if the entered deck name is different from the current deck
+        if deckName != deck.name {
+            // Find or create a new deck with the entered name
+            targetDeck = findOrCreateDeck(named: deckName)
+        } else {
+            targetDeck = deck
+        }
 
         // Find or create the category
-        let category = findOrCreateCategory(named: categoryName, in: deck)
+        let category = findOrCreateCategory(named: categoryName, in: targetDeck)
         newFlashcard.category = category
 
         do {
@@ -190,6 +217,21 @@ struct AddFlashcardView: View {
         if let answerURL = answerAudioURL {
             let filename = saveAudioFile(answerURL)
             newFlashcard.answerAudioFilename = filename
+        }
+    }
+    
+    private func findOrCreateDeck(named name: String) -> Deck {
+        let request: NSFetchRequest<Deck> = Deck.fetchRequest()
+        request.predicate = NSPredicate(format: "name == %@", name)
+        
+        if let existingDeck = try? viewContext.fetch(request).first {
+            return existingDeck
+        } else {
+            let newDeck = Deck(context: viewContext)
+            newDeck.id = UUID()
+            newDeck.name = name
+            newDeck.creationDate = Date()
+            return newDeck
         }
     }
 
