@@ -102,7 +102,6 @@ struct StatisticsView: View {
         }
     }
 
-
     private func chartTitle(_ text: String) -> some View {
         Text(text)
             .font(.headline)
