@@ -24,8 +24,6 @@ struct FlashcardsStudyView: View {
     @State private var countGood: Int = 0
     @State private var countEasy: Int = 0
 
-
-
     @ObservedObject var viewModel = FlashcardViewModel(context: PersistenceController.shared.container.viewContext)
     
     var category: Category
@@ -110,17 +108,7 @@ struct FlashcardsStudyView: View {
             EditFlashcardView(viewModel: viewModel)
                 .frame(minHeight: 400)
         }
-        .toolbar {
-            ToolbarItem(placement: .automatic) {
-                Button(action: {
-                    isEditing.toggle()
-                }) {
-                    Label("Edit", systemImage: "pencil")
-                }
-                .disabled(flashcards.first(where: { $0.category == category }) == nil)
-                .help("Edit Flashcard")
-            }
-        }
+        .toolbar { editButton }
         .onAppear {
             viewModel.loadNextFlashcard(from: category)
             startStudySession()
@@ -129,7 +117,17 @@ struct FlashcardsStudyView: View {
             endStudySession()
         }
     }
-
+    
+    private var editButton: some ToolbarContent {
+        ToolbarItem(placement: .automatic) {
+            Button(action: { isEditing.toggle() }) {
+                Label("Edit", systemImage: "pencil")
+            }
+            .disabled(flashcards.first(where: { $0.category == category }) == nil)
+            .help("Edit Flashcard")
+        }
+    }
+    
     private func rateFlashcard(rating: Rating) {
         guard let flashcard = viewModel.flashcard else { return }
         let card = flashcard.toCard()
@@ -306,112 +304,3 @@ struct RatingButton: View {
     }
 }
 
-
-extension Flashcard {
-    func toCard() -> Card {
-        let card = Card()
-        // Map Flashcard properties to Card properties
-        card.due = self.due ?? Date() // Provide a default value if `self.due` is nil
-        card.difficulty = self.difficulty
-        card.stability = self.stability
-        card.reps = Int(self.reps)
-        card.lapses = Int(self.lapses)
-        card.status = Status(rawValue: Int(self.status)) ?? .New
-        card.lastReview = self.lastReview ?? Date()
-        return card
-    }
-
-    func updateFromCard(_ card: Card) {
-        // Map Card properties back to Flashcard
-        self.due = card.due // 'card.due' is non-optional, so direct assignment is fine
-        self.difficulty = card.difficulty
-        self.stability = card.stability
-        self.reps = Int16(card.reps)
-        self.lapses = Int16(card.lapses)
-        self.status = Int16(card.status.rawValue)
-        self.lastReview = card.lastReview
-    }
-}
-
-class FlashcardViewModel: ObservableObject {
-    @Published var flashcard: Flashcard?
-    private var viewContext: NSManagedObjectContext
-
-    init(context: NSManagedObjectContext) {
-        self.viewContext = context
-    }
-    
-    func loadNextFlashcard(from category: Category) {
-        let currentDate = Date()
-        let request: NSFetchRequest<Flashcard> = Flashcard.fetchRequest()
-        request.predicate = NSPredicate(format: "category == %@ AND due <= %@", category, currentDate as CVarArg)
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \Flashcard.due, ascending: true)]
-        request.fetchLimit = 1
-        
-        do {
-            let results = try viewContext.fetch(request)
-            if let flashcard = results.first {
-                DispatchQueue.main.async {
-                    self.flashcard = flashcard
-                }
-            } else {
-                DispatchQueue.main.async {
-                    self.flashcard = nil
-                }
-            }
-        } catch {
-            print("Error fetching flashcards: \(error)")
-        }
-    }
-    
-    func loadFlashcard(withID id: UUID) {
-        let request: NSFetchRequest<Flashcard> = Flashcard.fetchRequest()
-        request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
-        request.fetchLimit = 1
-
-        do {
-            let results = try viewContext.fetch(request)
-            DispatchQueue.main.async {
-                self.flashcard = results.first
-            }
-        } catch {
-            print("Error fetching flashcard: \(error)")
-        }
-    }
-
-    func saveFlashcard() {
-        do {
-            try viewContext.save()
-        } catch {
-            print("Error saving context: \(error.localizedDescription)")
-        }
-    }
-
-    func updateFlashcard(question: String, answer: String, questionAudio: String?, answerAudio: String?) {
-        print("Updating flashcard with question: \(question), answer: \(answer)")
-        flashcard?.question = question
-        flashcard?.answer = answer
-        flashcard?.questionAudioFilename = questionAudio ?? ""
-        flashcard?.answerAudioFilename = answerAudio ?? ""
-        
-        if questionAudio == nil {
-            deleteAudioFromDocuments(filename: flashcard?.questionAudioFilename)
-        }
-        if answerAudio == nil {
-            deleteAudioFromDocuments(filename: flashcard?.answerAudioFilename)
-        }
-        saveFlashcard()
-    }
-    
-    private func deleteAudioFromDocuments(filename: String?) {
-        guard let filename = filename, !filename.isEmpty else { return }
-        let fileManager = FileManager.default
-        let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let fileURL = documentsDirectory.appendingPathComponent(filename)
-        do {
-            try fileManager.removeItem(at: fileURL)
-        } catch {
-            print("Failed to delete audio file: \(error.localizedDescription)")
-        }
-    }
-}
