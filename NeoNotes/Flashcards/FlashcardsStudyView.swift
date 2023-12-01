@@ -95,7 +95,7 @@ struct FlashcardsStudyView: View {
                                     color: colorForRating(rating),
                                     action: { rateFlashcard(rating: rating) },
                                     shortcut: KeyEquivalent(Character(String(rating.rawValue))),
-                                    tooltip: "Shortcut: \(rating.rawValue)" 
+                                    tooltip: "Shortcut: \(rating.rawValue)"
                                 )
                             }
                         }
@@ -118,6 +118,7 @@ struct FlashcardsStudyView: View {
                     Label("Edit", systemImage: "pencil")
                 }
                 .disabled(flashcards.first(where: { $0.category == category }) == nil)
+                .help("Edit Flashcard")
             }
         }
         .onAppear {
