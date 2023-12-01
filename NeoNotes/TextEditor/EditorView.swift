@@ -17,3 +17,34 @@ struct EditorView: View {
     }
 }
 
+struct AddFolderView: View {
+    @Binding var isPresented: Bool
+    @ObservedObject var notesViewModel: NotesViewModel
+    @State private var folderName: String = ""
+
+    var body: some View {
+        VStack {
+            Text("Enter new folder name:")
+            TextField("Folder Name", text: $folderName)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding()
+
+            HStack {
+                Button("Cancel") {
+                    isPresented = false
+                }
+                .keyboardShortcut(.cancelAction)
+                
+                Button("Add") {
+                    notesViewModel.addFolder(withName: folderName, parentFolderID: nil)
+                    isPresented = false
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(folderName.isEmpty)
+            }
+            .padding()
+        }
+        .frame(width: 300, height: 120)
+        .padding()
+    }
+}

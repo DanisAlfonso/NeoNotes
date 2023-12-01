@@ -9,6 +9,8 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var viewModel: AppViewModel
+    @EnvironmentObject var notesViewModel: NotesViewModel
+    @State private var showingAddFolderSheet = false
     @State private var isSidebarVisible = true
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -38,6 +40,9 @@ struct ContentView: View {
         .sheet(isPresented: $viewModel.showingAddFlashcard) {
             AddFlashcardView(isPresented: $viewModel.showingAddFlashcard, deck: nil)
         }
+        .sheet(isPresented: $showingAddFolderSheet) {
+            AddFolderView(isPresented: $showingAddFolderSheet, notesViewModel: notesViewModel)
+        }
     }
     
     private var sidebar: some View {
@@ -45,14 +50,41 @@ struct ContentView: View {
             NavigationLink(destination: DecksView()) {
                 Label("Decks", systemImage: "rectangle.stack")
             }
+            
             NavigationLink(destination: StatisticsView()) {
                 Label("Statistics", systemImage: "chart.bar")
             }
-            NavigationLink(destination: EditorView()) {
-                Label("Notes", systemImage: "doc.plaintext")
-            }
+            
             NavigationLink(destination: SettingsView()) {
                 Label("Settings", systemImage: "gear")
+            }
+                    
+            Section(header: Text("Notes")) {
+                ForEach(notesViewModel.folders, id: \.self) { folder in
+                    NavigationLink(destination: EditorView()) {
+                        HStack {
+                            Image(systemName: "folder")
+                            Text(folder.name ?? "Untitled Folder")
+                                .contextMenu {
+                                    Button("Rename", action: { /* Implement rename action */ })
+                                    Button("Delete", action: { /* Implement delete action */ })
+                                    Button("Add Subfolder", action: { /* Implement add subfolder action */ })
+                                }
+                        }
+                        .padding(.leading, 10)
+                    }
+                }
+                Button(action: {
+                    showingAddFolderSheet = true
+                }) {
+                    Label("Add Folder", systemImage: "folder.badge.plus")
+                }
+                NavigationLink(destination: Text("Todo View Placeholder")) {
+                    Label("Todo", systemImage: "checkmark.circle")
+                }
+                NavigationLink(destination: Text("Trash View Placeholder")) {
+                    Label("Trash", systemImage: "trash")
+                }
             }
         }
         .listStyle(SidebarListStyle())

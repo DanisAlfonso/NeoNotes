@@ -17,6 +17,7 @@ struct NeoNotesApp: App {
         WindowGroup {
             ContentView()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                .environmentObject(NotesViewModel(context: persistenceController.container.viewContext))
                 .environmentObject(viewModel)
             
         }
