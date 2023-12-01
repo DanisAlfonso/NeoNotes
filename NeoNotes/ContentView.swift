@@ -48,8 +48,8 @@ struct ContentView: View {
             NavigationLink(destination: StatisticsView()) {
                 Label("Statistics", systemImage: "chart.bar")
             }
-            NavigationLink(destination: AccountView()) {
-                Label("Account", systemImage: "person.crop.circle")
+            NavigationLink(destination: EditorView()) {
+                Label("Notes", systemImage: "doc.plaintext")
             }
             NavigationLink(destination: SettingsView()) {
                 Label("Settings", systemImage: "gear")

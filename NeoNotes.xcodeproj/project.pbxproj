@@ -14,6 +14,7 @@
 		3043AA822B0CE0DC0085477F /* NeoNotesModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 3043AA802B0CE0DC0085477F /* NeoNotesModel.xcdatamodeld */; };
 		3043AA842B0CE2390085477F /* FlashCardEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3043AA832B0CE2390085477F /* FlashCardEngine.swift */; };
 		3043AA8A2B0D06BF0085477F /* DecksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3043AA892B0D06BF0085477F /* DecksView.swift */; };
+		305631292B1A30B3008473BE /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 305631282B1A30B3008473BE /* EditorView.swift */; };
 		3080A3272B0EA73D00FDE7FA /* CategoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3080A3262B0EA73D00FDE7FA /* CategoriesView.swift */; };
 		3080A32A2B0EB25700FDE7FA /* FlashcardsStudyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3080A3292B0EB25700FDE7FA /* FlashcardsStudyView.swift */; };
 		3080A3552B10E47B00FDE7FA /* DocumentPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3080A3542B10E47B00FDE7FA /* DocumentPicker.swift */; };
@@ -35,6 +36,7 @@
 		3043AA812B0CE0DC0085477F /* NeoNotesModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = NeoNotesModel.xcdatamodel; sourceTree = "<group>"; };
 		3043AA832B0CE2390085477F /* FlashCardEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlashCardEngine.swift; sourceTree = "<group>"; };
 		3043AA892B0D06BF0085477F /* DecksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecksView.swift; sourceTree = "<group>"; };
+		305631282B1A30B3008473BE /* EditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorView.swift; sourceTree = "<group>"; };
 		3080A3262B0EA73D00FDE7FA /* CategoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriesView.swift; sourceTree = "<group>"; };
 		3080A3292B0EB25700FDE7FA /* FlashcardsStudyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlashcardsStudyView.swift; sourceTree = "<group>"; };
 		3080A3542B10E47B00FDE7FA /* DocumentPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentPicker.swift; sourceTree = "<group>"; };
@@ -91,6 +93,7 @@
 				3043AA732B0CE0C40085477F /* ContentView.swift */,
 				30EEF5322B1513820025DB3E /* StatisticsView.swift */,
 				3043AA892B0D06BF0085477F /* DecksView.swift */,
+				305631252B1A305B008473BE /* TextEditor */,
 				3080A3282B0EB21600FDE7FA /* Categories */,
 				3023C67C2B113E8D00625EA9 /* Flashcards */,
 				3043AA802B0CE0DC0085477F /* NeoNotesModel.xcdatamodeld */,
@@ -107,6 +110,14 @@
 				3043AA792B0CE0C50085477F /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		305631252B1A305B008473BE /* TextEditor */ = {
+			isa = PBXGroup;
+			children = (
+				305631282B1A30B3008473BE /* EditorView.swift */,
+			);
+			path = TextEditor;
 			sourceTree = "<group>";
 		};
 		3080A3282B0EB21600FDE7FA /* Categories */ = {
@@ -200,6 +211,7 @@
 				3080A3572B1107C600FDE7FA /* AddFlashcardView.swift in Sources */,
 				30CE97A62B12504E00CADCCD /* EditFlashcardView.swift in Sources */,
 				30CE97A82B126B1000CADCCD /* DeletableFileView.swift in Sources */,
+				305631292B1A30B3008473BE /* EditorView.swift in Sources */,
 				3080A3552B10E47B00FDE7FA /* DocumentPicker.swift in Sources */,
 				3043AA822B0CE0DC0085477F /* NeoNotesModel.xcdatamodeld in Sources */,
 				3080A32A2B0EB25700FDE7FA /* FlashcardsStudyView.swift in Sources */,
