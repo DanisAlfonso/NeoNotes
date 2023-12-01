@@ -12,11 +12,7 @@ import UniformTypeIdentifiers
 
 struct AddFlashcardView: View {
     @Binding var isPresented: Bool
-    @FocusState private var focusedField: FocusableField? {
-        didSet {
-            print("Focused field is now: \(String(describing: focusedField))")
-        }
-    }
+    @FocusState private var focusedField: FocusableField? 
     @Environment(\.managedObjectContext) private var viewContext
     var deck: Deck?
     @State private var deckName = ""

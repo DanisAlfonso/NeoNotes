@@ -93,7 +93,9 @@ struct FlashcardsStudyView: View {
                                     text: rating.description,
                                     subtitle: dueDate.formatted(), // Format the date here
                                     color: colorForRating(rating),
-                                    action: { rateFlashcard(rating: rating) }
+                                    action: { rateFlashcard(rating: rating) },
+                                    shortcut: KeyEquivalent(Character(String(rating.rawValue))),
+                                    tooltip: "Shortcut: \(rating.rawValue)" 
                                 )
                             }
                         }
@@ -262,6 +264,8 @@ struct RatingButton: View {
     let subtitle: String? // Date string
     let color: Color
     let action: () -> Void
+    let shortcut: KeyEquivalent
+    let tooltip: String
     @State private var isPressed = false
     @State private var isHovered = false
 
@@ -291,6 +295,8 @@ struct RatingButton: View {
             .scaleEffect(isPressed ? 0.95 : 1.0)
         }
         .buttonStyle(PlainButtonStyle())
+        .keyboardShortcut(shortcut, modifiers: [])
+        .help(tooltip)
         .animation(.easeInOut, value: isPressed)
         .onHover { hovering in
             self.isHovered = hovering
