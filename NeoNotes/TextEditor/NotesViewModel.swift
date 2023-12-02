@@ -14,17 +14,18 @@ class NotesViewModel: ObservableObject {
     
     init(context: NSManagedObjectContext) {
         self.context = context
-        fetchFolders() // Fetch folders when the ViewModel is initialized
+        fetchFolders()
     }
     
-    // Function to fetch folders whenever you need to refresh the list.
     func fetchFolders() {
+        print("Fetching folders...")
         let request: NSFetchRequest<Folder> = Folder.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(keyPath: \Folder.name, ascending: true)]
         
         DispatchQueue.main.async {
             do {
                 self.folders = try self.context.fetch(request)
+                print("Folders fetched successfully. Total folders: \(self.folders.count)")
             } catch {
                 print("Error fetching folders: \(error)")
             }
@@ -44,7 +45,7 @@ class NotesViewModel: ObservableObject {
         }
         
         saveContext()
-        fetchFolders() // Refresh the folder list to include the new folder
+        fetchFolders()
     }
 
     // Helper method to fetch the "Notes" root folder
@@ -92,15 +93,22 @@ class NotesViewModel: ObservableObject {
     }
     
     func renameFolder(_ folder: Folder, to newName: String) {
+        print("Attempting to rename folder: \(folder.name ?? "Unnamed") to \(newName)")
         folder.name = newName
+        
+        print("Folder renamed. Now refreshing folder list.")
+
         saveContext()
-        fetchFolders() // Refresh the folder list to show the updated name
+        DispatchQueue.main.async {
+            self.fetchFolders()
+        }
     }
 
     private func saveContext() {
         if context.hasChanges {
             do {
                 try context.save()
+                print("Context saved successfully.")
             } catch {
                 // Handle the error appropriately
                 print("Error saving context: \(error)")

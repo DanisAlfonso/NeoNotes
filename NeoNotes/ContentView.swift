@@ -17,6 +17,7 @@ struct ContentView: View {
     @State private var hoveringSettings = false
     @State private var hoveringTodo = false
     @State private var hoveringTrash = false
+    @State private var hoveringFolders = false
     
     @State private var folderToRename: Folder?
     @State private var newFolderName: String = ""
@@ -61,10 +62,11 @@ struct ContentView: View {
                 folderName: $newFolderName,
                 onRename: { newName in
                     if let folderToRename = folderToRename {
+                        print("Renaming folder: \(folderToRename.name ?? "Unnamed") to \(newName)")
                         notesViewModel.renameFolder(folderToRename, to: newName)
-                        // Reset the state after renaming
-                        self.folderToRename = nil
-                        self.newFolderName = ""
+                        DispatchQueue.main.async {
+                            self.notesViewModel.fetchFolders() // Refresh the folders list
+                        }
                     }
                 }
             )
@@ -120,24 +122,28 @@ struct ContentView: View {
                 
                 ForEach(notesViewModel.folders, id: \.self) { folder in
                     NavigationLink(destination: EditorView()) {
-                        HoverEffectView { isHovered in
                             HStack {
                                 Image(systemName: "folder")
-                                    .foregroundColor(isHovered ? .accentColor : .primary) //
+                                    .foregroundColor(hoveringFolders ? .accentColor : .primary)
+                                    .animation(.easeInOut, value: hoveringFolders)
                                 Text(folder.name ?? "Untitled Folder")
-                                    .foregroundColor(isHovered ? .accentColor : .primary) // Change color on hover
-                                    .contextMenu {
-                                        Button("Rename") {
-                                            self.newFolderName = folder.name ?? ""
-                                            self.folderToRename = folder
-                                            self.showingRenameView = true
-                                        }
-                                        Button("Delete", action: { /* Implement delete action */ })
-                                        Button("Add Subfolder", action: { /* Implement add subfolder action */ })
-                                    }
+                                    .foregroundColor(hoveringFolders ? .accentColor : .primary)
+                                    .animation(.easeInOut, value: hoveringFolders)
+                                    
                             }
                             .padding(.leading, 10)
+                    }
+                    .onHover { over in
+                        hoveringFolders = over
+                    }
+                    .contextMenu {
+                        Button("Rename") {
+                            self.newFolderName = folder.name ?? ""
+                            self.folderToRename = folder
+                            self.showingRenameView = true
                         }
+                        Button("Delete", action: { /* Implement delete action */ })
+                        Button("Add Subfolder", action: { /* Implement add subfolder action */ })
                     }
                 }
                 
