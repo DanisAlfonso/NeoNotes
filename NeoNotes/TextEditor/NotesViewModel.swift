@@ -90,8 +90,13 @@ class NotesViewModel: ObservableObject {
             return nil
         }
     }
+    
+    func renameFolder(_ folder: Folder, to newName: String) {
+        folder.name = newName
+        saveContext()
+        fetchFolders() // Refresh the folder list to show the updated name
+    }
 
-    // Function to save the context and persist changes
     private func saveContext() {
         if context.hasChanges {
             do {

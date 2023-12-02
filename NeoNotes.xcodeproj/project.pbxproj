@@ -20,6 +20,7 @@
 		3080A3552B10E47B00FDE7FA /* DocumentPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3080A3542B10E47B00FDE7FA /* DocumentPicker.swift */; };
 		3080A3572B1107C600FDE7FA /* AddFlashcardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3080A3562B1107C500FDE7FA /* AddFlashcardView.swift */; };
 		30CACDF52B1A77150045F372 /* NotesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30CACDF42B1A77150045F372 /* NotesViewModel.swift */; };
+		30CACDF72B1B69120045F372 /* RenameFolderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30CACDF62B1B69120045F372 /* RenameFolderView.swift */; };
 		30CE97A62B12504E00CADCCD /* EditFlashcardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30CE97A52B12504E00CADCCD /* EditFlashcardView.swift */; };
 		30CE97A82B126B1000CADCCD /* DeletableFileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30CE97A72B126B1000CADCCD /* DeletableFileView.swift */; };
 		30EEF5332B1513820025DB3E /* StatisticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30EEF5322B1513820025DB3E /* StatisticsView.swift */; };
@@ -43,6 +44,7 @@
 		3080A3542B10E47B00FDE7FA /* DocumentPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentPicker.swift; sourceTree = "<group>"; };
 		3080A3562B1107C500FDE7FA /* AddFlashcardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFlashcardView.swift; sourceTree = "<group>"; };
 		30CACDF42B1A77150045F372 /* NotesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesViewModel.swift; sourceTree = "<group>"; };
+		30CACDF62B1B69120045F372 /* RenameFolderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenameFolderView.swift; sourceTree = "<group>"; };
 		30CE97A52B12504E00CADCCD /* EditFlashcardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditFlashcardView.swift; sourceTree = "<group>"; };
 		30CE97A72B126B1000CADCCD /* DeletableFileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeletableFileView.swift; sourceTree = "<group>"; };
 		30EEF5322B1513820025DB3E /* StatisticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsView.swift; sourceTree = "<group>"; };
@@ -119,6 +121,7 @@
 			children = (
 				305631282B1A30B3008473BE /* EditorView.swift */,
 				30CACDF42B1A77150045F372 /* NotesViewModel.swift */,
+				30CACDF62B1B69120045F372 /* RenameFolderView.swift */,
 			);
 			path = TextEditor;
 			sourceTree = "<group>";
@@ -206,6 +209,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				3043AA742B0CE0C40085477F /* ContentView.swift in Sources */,
+				30CACDF72B1B69120045F372 /* RenameFolderView.swift in Sources */,
 				3080A3272B0EA73D00FDE7FA /* CategoriesView.swift in Sources */,
 				30EEF5372B1788BC0025DB3E /* FlashcardsListView.swift in Sources */,
 				30EEF5332B1513820025DB3E /* StatisticsView.swift in Sources */,
