@@ -11,7 +11,12 @@ struct ContentView: View {
     @EnvironmentObject var viewModel: AppViewModel
     @EnvironmentObject var notesViewModel: NotesViewModel
     @State private var showingAddFolderSheet = false
-    @State private var hovering = false
+    @State private var hoveringAddFolder = false
+    @State private var hoveringDecks = false
+    @State private var hoveringStatistics = false
+    @State private var hoveringSettings = false
+    @State private var hoveringTodo = false
+    @State private var hoveringTrash = false
 
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -50,14 +55,30 @@ struct ContentView: View {
         List {
             NavigationLink(destination: DecksView()) {
                 Label("Decks", systemImage: "rectangle.stack")
+                    .foregroundColor(hoveringDecks ? .accentColor : .primary)
+
+                
             }
+            .onHover { over in
+                hoveringDecks = over
+            }
+            .animation(.easeInOut, value: hoveringDecks)
             
             NavigationLink(destination: StatisticsView()) {
                 Label("Statistics", systemImage: "chart.bar")
+                    .foregroundColor(hoveringStatistics ? .accentColor : .primary)
             }
+            .onHover { over in
+                hoveringStatistics = over
+            }
+            .animation(.easeInOut, value: hoveringStatistics)
             
             NavigationLink(destination: SettingsView()) {
                 Label("Settings", systemImage: "gear")
+                    .foregroundColor(hoveringSettings ? .accentColor : .primary)
+            }
+            .onHover { over in
+                hoveringSettings = over
             }
                     
             Section(header: Text("Notes")) {
@@ -66,18 +87,17 @@ struct ContentView: View {
                 }) {
                     HStack {
                         Image(systemName: "folder.badge.plus")
-                            .foregroundColor(hovering ? .accentColor : .gray)
+                            .foregroundColor(hoveringAddFolder ? .accentColor : .gray)
                         Text("Add Folder")
-                            .foregroundColor(hovering ? .accentColor : .primary)
+                            .foregroundColor(hoveringAddFolder ? .accentColor : .primary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.leading, 10)
                 }
                 .buttonStyle(BorderlessButtonStyle())
                 .onHover { over in
-                    hovering = over // Update the state variable
+                    hoveringAddFolder = over
                 }
-                .animation(.easeInOut, value: hovering)
+                .animation(.easeInOut, value: hoveringAddFolder)
                 .padding(.top, 5)
                 
                 ForEach(notesViewModel.folders, id: \.self) { folder in
@@ -94,12 +114,20 @@ struct ContentView: View {
                         .padding(.leading, 10)
                     }
                 }
-            
+                
                 NavigationLink(destination: Text("Todo View Placeholder")) {
                     Label("Todo", systemImage: "checkmark.circle")
+                        .foregroundColor(hoveringTodo ? .accentColor : .primary)
+                }
+                .onHover { over in
+                    hoveringTodo = over
                 }
                 NavigationLink(destination: Text("Trash View Placeholder")) {
                     Label("Trash", systemImage: "trash")
+                        .foregroundColor(hoveringTrash ? .accentColor : .primary)
+                }
+                .onHover { over in
+                    hoveringTrash = over
                 }
             }
         }
