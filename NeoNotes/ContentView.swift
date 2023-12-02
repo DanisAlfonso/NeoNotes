@@ -18,12 +18,6 @@ struct ContentView: View {
     @State private var hoveringTodo = false
     @State private var hoveringTrash = false
     @State private var hoveringFolders = false
-    
-    @State private var folderToRename: Folder?
-    @State private var newFolderName: String = ""
-    @State private var showingRenameView = false
-
-
 
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -55,21 +49,6 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showingAddFolderSheet) {
             AddFolderView(isPresented: $showingAddFolderSheet, notesViewModel: notesViewModel)
-        }
-        .sheet(isPresented: $showingRenameView) {
-            RenameFolderView(
-                isPresented: $showingRenameView,
-                folderName: $newFolderName,
-                onRename: { newName in
-                    if let folderToRename = folderToRename {
-                        print("Renaming folder: \(folderToRename.name ?? "Unnamed") to \(newName)")
-                        notesViewModel.renameFolder(folderToRename, to: newName)
-                        DispatchQueue.main.async {
-                            self.notesViewModel.fetchFolders() // Refresh the folders list
-                        }
-                    }
-                }
-            )
         }
     }
     
@@ -121,30 +100,7 @@ struct ContentView: View {
                 .padding(.top, 5)
                 
                 ForEach(notesViewModel.folders, id: \.self) { folder in
-                    NavigationLink(destination: EditorView()) {
-                            HStack {
-                                Image(systemName: "folder")
-                                    .foregroundColor(hoveringFolders ? .accentColor : .primary)
-                                    .animation(.easeInOut, value: hoveringFolders)
-                                Text(folder.name ?? "Untitled Folder")
-                                    .foregroundColor(hoveringFolders ? .accentColor : .primary)
-                                    .animation(.easeInOut, value: hoveringFolders)
-                                    
-                            }
-                            .padding(.leading, 10)
-                    }
-                    .onHover { over in
-                        hoveringFolders = over
-                    }
-                    .contextMenu {
-                        Button("Rename") {
-                            self.newFolderName = folder.name ?? ""
-                            self.folderToRename = folder
-                            self.showingRenameView = true
-                        }
-                        Button("Delete", action: { /* Implement delete action */ })
-                        Button("Add Subfolder", action: { /* Implement add subfolder action */ })
-                    }
+                    FolderView(folder: folder)
                 }
                 
                 NavigationLink(destination: Text("Todo View Placeholder")) {
@@ -217,5 +173,68 @@ struct AccountView: View {
 struct SettingsView: View {
     var body: some View {
         Text("Placeholder for Settings")
+    }
+}
+
+struct FolderView: View {
+    let folder: Folder
+    @EnvironmentObject var notesViewModel: NotesViewModel
+    @State private var isHovering = false
+    
+    @State private var folderToRename: Folder?
+    @State private var newFolderName: String = ""
+    @State private var showingRenameView = false
+
+    var body: some View {
+        NavigationLink(destination: EditorView()) {
+            HStack {
+                Image(systemName: "folder")
+                    .foregroundColor(isHovering ? .accentColor : .primary)
+                Text(folder.name ?? "Untitled Folder")
+                    .foregroundColor(isHovering ? .accentColor : .primary)
+            }
+            .padding(.leading, 10)
+        }
+        .onHover { over in
+            isHovering = over
+        }
+        .contextMenu {
+            //Button("Rename") { /* Rename action */ }
+            Button("Rename") {
+                self.newFolderName = folder.name ?? ""
+                self.folderToRename = folder
+                self.showingRenameView = true
+            }
+            Button("Delete") {
+                self.showDeleteConfirmation(for: folder)
+            }
+            Button("Add Subfolder") { /* Add subfolder action */ }
+        }
+        .sheet(isPresented: $showingRenameView) {
+            RenameFolderView(
+                isPresented: $showingRenameView,
+                folderName: $newFolderName,
+                onRename: { newName in
+                    if let folderToRename = folderToRename {
+                        notesViewModel.renameFolder(folderToRename, to: newName)
+                        DispatchQueue.main.async {
+                            notesViewModel.fetchFolders() // Refresh the folders list
+                        }
+                    }
+                }
+            )
+        }
+    }
+    
+    private func showDeleteConfirmation(for folder: Folder) {
+        let alert = NSAlert()
+        alert.messageText = "Delete Folder"
+        alert.informativeText = "Are you sure you want to delete the folder '\(folder.name ?? "Unnamed")' and all its contents?"
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Delete")
+        alert.addButton(withTitle: "Cancel")
+        if alert.runModal() == .alertFirstButtonReturn {
+            notesViewModel.deleteFolder(folder)
+        }
     }
 }
