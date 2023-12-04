@@ -1,0 +1,2707 @@
+//
+//  NeoNotesApp.swift
+//  NeoNotes
+//
+//  Created by Danny Ramírez on 21.11.23.
+//
+
+import SwiftUI
+import CoreData
+
+@main
+struct NeoNotesApp: App {
+    let persistenceController = PersistenceController.shared
+    @StateObject var viewModel = AppViewModel()
+
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+                .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                .environmentObject(NotesViewModel(context: persistenceController.container.viewContext))
+                .environmentObject(viewModel)
+            
+        }
+        .commands {
+            
+            CommandGroup(replacing: .newItem) {
+                Button("New Deck") {
+                    viewModel.createNewDeck()
+                }
+                .keyboardShortcut("n", modifiers: .command)
+            }
+            
+            CommandGroup(after: CommandGroupPlacement.newItem) {
+                Button("Add Flashcard") {
+                    viewModel.triggerAddFlashcard()
+                }
+                .keyboardShortcut("n", modifiers: [.shift, .command])
+            }
+            
+            CommandGroup(after: CommandGroupPlacement.newItem) {
+                Button("Open NeoNotes Directory") {
+                    openNeoNotesDirectory()
+                }
+            }
+        }
+    }
+    
+    func openNeoNotesDirectory() {
+        if let url = persistenceController.container.persistentStoreDescriptions.first?.url?.deletingLastPathComponent() {
+            NSWorkspace.shared.open(url)
+        } else {
+            print("Could not find the NeoNotes directory.")
+        }
+    }
+}
+
+struct PersistenceController {
+    static let shared = PersistenceController()
+
+    let container: NSPersistentContainer
+
+    init(inMemory: Bool = false) {
+        container = NSPersistentContainer(name: "NeoNotesModel")
+
+        // Set the options for the persistent store directly
+        if let description = container.persistentStoreDescriptions.first {
+            description.setOption(NSNumber(value: true), forKey: NSMigratePersistentStoresAutomaticallyOption)
+            description.setOption(NSNumber(value: true), forKey: NSInferMappingModelAutomaticallyOption)
+        }
+        if inMemory {
+            container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
+        }
+
+        container.loadPersistentStores { (storeDescription, error) in
+            if let error = error as NSError? {
+                // Handle the error appropriately
+                fatalError("Unresolved error \(error), \(error.userInfo)")
+            }
+        }
+    }
+}
+
+extension PersistenceController {
+    static var preview: PersistenceController = {
+        let controller = PersistenceController(inMemory: true)
+        let viewContext = controller.container.viewContext
+
+        // Create mock data here if needed
+
+        return controller
+    }()
+}
+
+class AppViewModel: ObservableObject {
+    @Published var showingAddDeck = false
+    @Published var showingAddFlashcard = false
+
+    func createNewDeck() {
+        showingAddDeck = true
+    }
+    
+    func triggerAddFlashcard() {
+        showingAddFlashcard.toggle()
+    }
+}
+
+//
+//  FlashCardEngine.swift
+//  NeoNotes
+//
+//  Created by Danny Ramírez on 21.11.23.
+//
+
+import Foundation
+
+public class Const {
+    public static let secondsInMinute = 60.0
+    public static let secondsInHour = 3600.0
+    public static let secondsInDay = 86400.0
+}
+
+enum Status: Int {
+    case New = 0, Learning, Review, Relearning
+    
+    var description : String {
+      switch self {
+      case .New: return "New"
+      case .Learning: return "Learning"
+      case .Review: return "Review"
+      case .Relearning: return "Relearning"
+      }
+    }
+}
+
+enum Rating: Int, Encodable {
+    case Again = 1, Hard, Good, Easy
+    
+    var description : String {
+      switch self {
+      case .Again: return "Again"
+      case .Hard: return "Hard"
+      case .Good: return "Good"
+      case .Easy: return "Easy"
+      }
+    }
+}
+
+class ReviewLog {
+    var rating: Rating
+    var elapsedDays: Double
+    var scheduledDays: Double
+    var review: Date
+    var status: Status
+
+    init(rating: Rating, elapsedDays: Double, scheduledDays: Double, review: Date, status: Status) {
+        self.rating = rating
+        self.elapsedDays = elapsedDays
+        self.scheduledDays = scheduledDays
+        self.review = review
+        self.status = status
+    }
+    
+    func data() -> [String: Encodable] {
+        return [
+            "rating": rating,
+            "elapsedDays": elapsedDays,
+            "scheduledDays": scheduledDays,
+            "review": review,
+            "state": status.description,
+        ]
+    }
+    
+}
+
+class Card: NSCopying {
+    
+    var due: Date
+    var stability: Double
+    var difficulty: Double
+    var elapsedDays: Double
+    var scheduledDays: Double
+    var reps: Int
+    var lapses: Int
+    var status: Status
+    var lastReview: Date
+
+    init() {
+        self.due = Date()
+        self.stability = 0
+        self.difficulty = 0
+        self.elapsedDays = 0
+        self.scheduledDays = 0
+        self.reps = 0
+        self.lapses = 0
+        self.status = .New
+        self.lastReview = Date()
+    }
+
+    func retrievability(for now: Date) -> Double? {
+        var retrievability: Double?
+        if status == .Review {
+            let elapsedDays = max(0, (now.timeIntervalSince(lastReview) / Const.secondsInDay))
+            retrievability = exp(log(0.9) * Double(elapsedDays) / stability)
+        }
+        return retrievability
+    }
+    
+    func copy(with zone: NSZone? = nil) -> Any {
+        let card = Card()
+        card.due = due
+        card.stability = stability
+        card.difficulty = difficulty
+        card.elapsedDays = elapsedDays
+        card.scheduledDays = scheduledDays
+        card.reps = reps
+        card.lapses = lapses
+        card.status = status
+        card.lastReview = lastReview
+        return card
+    }
+    
+    func data() -> [String: Encodable] {
+        return [
+            "due": due,
+            "stability": stability,
+            "difficulty": difficulty,
+            "elapsed_days": elapsedDays,
+            "scheduled_days": scheduledDays,
+            "reps": reps,
+            "lapses": lapses,
+            "state": status.description,
+            "last_review": lastReview,
+        ]
+    }
+    
+    func printLog() {
+        do {
+            let data = try JSONSerialization.data(withJSONObject: data(), options: .prettyPrinted)
+            print(data)
+        } catch {
+            print("Error serializing JSON: \(error)")
+        }
+    }
+    
+}
+
+class SchedulingInfo {
+    var card: Card
+    var reviewLog: ReviewLog
+    
+    init(card: Card, reviewLog: ReviewLog) {
+        self.card = card
+        self.reviewLog = reviewLog
+    }
+    
+    init(rating: Rating, reference: Card, current: Card, review: Date) {
+        self.card = reference
+        self.reviewLog = ReviewLog(rating: rating, elapsedDays: reference.scheduledDays, scheduledDays: current.elapsedDays, review: review, status: current.status)
+    }
+    
+    func data() -> [String: [String: Encodable]] {
+        return [
+            "log": reviewLog.data(),
+            "card": card.data()
+        ]
+    }
+
+}
+
+class SchedulingCards {
+    var again: Card
+    var hard: Card
+    var good: Card
+    var easy: Card
+
+    init(card: Card) {
+        self.again = card.copy() as! Card
+        self.hard = card.copy() as! Card
+        self.good = card.copy() as! Card
+        self.easy = card.copy() as! Card
+    }
+
+    func updateStatus(to status: Status) {
+        if status == .New {
+            [again, hard, good].forEach { $0.status = .Learning }
+            easy.status = .Review
+            again.lapses += 1
+        } else if status == .Learning || status == .Relearning {
+            [again, hard].forEach { $0.status = status }
+            [good, easy].forEach { $0.status = .Review }
+        } else if status == .Review {
+            again.status = .Relearning
+            [hard, good, easy].forEach { $0.status = .Review }
+            again.lapses += 1
+        }
+    }
+
+    func schedule(now: Date, hardInterval: Double, goodInterval: Double, easyInterval: Double) {
+
+        again.scheduledDays = 0
+        hard.scheduledDays = hardInterval
+        good.scheduledDays = goodInterval
+        easy.scheduledDays = easyInterval
+        
+        again.due = addTime(now, value: 5, unit: .minute)
+        print("Again due date set to: \(again.due)")
+        if hardInterval > 0 {
+            hard.due = addTime(now, value: hardInterval, unit: .day)
+        } else {
+            hard.due = addTime(now, value: 10, unit: .minute)
+        }
+        good.due = addTime(now, value: goodInterval, unit: .day)
+        easy.due = addTime(now, value: easyInterval, unit: .day)
+    }
+    
+    public func addTime(_ now: Date, value: Double, unit: Calendar.Component) -> Date {
+        var seconds = 1.0
+        switch unit {
+            case .second:
+                seconds = 1.0
+            case .minute:
+                seconds = Const.secondsInMinute
+            case .hour:
+                seconds = Const.secondsInMinute
+            case .day:
+                seconds = Const.secondsInDay
+            default:
+                assert(false)
+            }
+        
+        return Date(timeIntervalSinceReferenceDate: now.timeIntervalSinceReferenceDate + seconds * value)
+//        return Calendar.current.date(byAdding: unit, value: value, to: now)!
+    }
+
+    func recordLog(for card: Card, now: Date) -> [Rating: SchedulingInfo] {
+        return [
+            .Again: SchedulingInfo(rating: .Again, reference: again, current: card, review: now),
+            .Hard: SchedulingInfo(rating: .Hard, reference: hard, current: card, review: now),
+            .Good: SchedulingInfo(rating: .Good, reference: good, current: card, review: now),
+            .Easy: SchedulingInfo(rating: .Easy, reference: easy, current: card, review: now),
+        ]
+    }
+    
+    func data() -> [String: [String: Encodable]] {
+        return [
+            "again": again.data(),
+            "hard": hard.data(),
+            "good": good.data(),
+            "easy": easy.data(),
+        ]
+    }
+    
+}
+
+class Params {
+    var requestRetention: Double
+    var maximumInterval: Double
+    var w: [Double]
+
+    init() {
+        self.requestRetention = 0.9
+        self.maximumInterval = 36500
+        self.w = [
+            0.4, // Initial Stability for Again
+            0.6, // Initial Stability for Hard
+            2.4, // Initial Stability for Good
+            5.8, // Initial Stability for Easy
+            4.93,
+            0.94,
+            0.86,
+            0.01,
+            1.49,
+            0.14,
+            0.94,
+            2.18,
+            0.05,
+            0.34,
+            1.26,
+            0.29,
+            2.61,
+        ]
+    }
+}
+
+
+class FSRS {
+    var p: Params
+    
+
+    init() {
+        self.p = Params()
+    }
+
+    // Was repeat
+    func `repeat`(card: Card, now: Date) -> [Rating: SchedulingInfo] {
+        let card = card.copy() as! Card
+
+        if card.status == .New {
+            card.elapsedDays = 0
+        } else {
+            // Check this is positive...
+            card.elapsedDays = (now.timeIntervalSince(card.lastReview)) / Const.secondsInDay
+        }
+        
+        print("Elapsed \(card.elapsedDays)")
+        card.lastReview = now
+        card.reps += 1
+        
+        let s = SchedulingCards(card: card)
+        s.updateStatus(to: card.status)
+        
+        if card.status == .New {
+            initDS(s: s)
+            
+            s.again.due = s.addTime(now, value: 1, unit: .minute)
+            s.hard.due = s.addTime(now, value: 5, unit: .minute)
+            s.good.due = s.addTime(now, value: 10, unit: .minute)
+
+            let easyInterval = nextInterval(s: s.easy.stability)
+            
+            s.easy.scheduledDays = easyInterval
+            s.easy.due = s.addTime(now, value: easyInterval, unit: .day)
+
+        } else if card.status == .Learning || card.status == .Relearning {
+            let hardInterval = 0.0
+            let goodInterval = nextInterval(s: s.good.stability)
+            let easyInterval = max(nextInterval(s: s.easy.stability), goodInterval + 1)
+            s.schedule(now: now, hardInterval: hardInterval, goodInterval: goodInterval, easyInterval: easyInterval)
+        } else if card.status == .Review {
+            
+            let interval = card.elapsedDays
+            let lastDifficulty = card.difficulty
+            let lastStability = card.stability
+            
+            let retrievability = pow(1 + Double(interval) / (9 * lastStability), -1)
+
+            nextDS(s, lastDifficulty: lastDifficulty, lastStability: lastStability, retrievability: retrievability)
+
+            var hardInterval = nextInterval(s: s.hard.stability)
+            var goodInterval = nextInterval(s: s.good.stability)
+            
+            hardInterval = min(hardInterval, goodInterval)
+            goodInterval = max(goodInterval, hardInterval + 1)
+            
+            let easyInterval = max(nextInterval(s: s.easy.stability), goodInterval + 1)
+            s.schedule(now: now, hardInterval: hardInterval, goodInterval: goodInterval, easyInterval: easyInterval)
+        }
+        
+        return s.recordLog(for: card, now: now)
+    }
+
+    func initDS(s: SchedulingCards) {
+        s.again.difficulty = initDifficulty(.Again)
+        s.again.stability = initStability(.Again)
+        s.hard.difficulty = initDifficulty(.Hard)
+        s.hard.stability = initStability(.Hard)
+        s.good.difficulty = initDifficulty(.Good)
+        s.good.stability = initStability(.Good)
+        s.easy.difficulty = initDifficulty(.Easy)
+        s.easy.stability = initStability(.Easy)
+    }
+
+    func nextDS(_ scheduling: SchedulingCards, lastDifficulty d: Double, lastStability s: Double, retrievability: Double) {
+        scheduling.again.difficulty = nextDifficulty(d: d, rating: .Again)
+        scheduling.again.stability = nextForgetStability(d: scheduling.again.difficulty, s: s, r: retrievability)
+        scheduling.hard.difficulty = nextDifficulty(d: d, rating: .Hard)
+        scheduling.hard.stability = nextRecallStability(d: scheduling.hard.difficulty, s: s, r: retrievability, rating: .Hard)
+        scheduling.good.difficulty = nextDifficulty(d: d, rating: .Good)
+        scheduling.good.stability = nextRecallStability(d: scheduling.good.difficulty, s: s, r: retrievability, rating: .Good)
+        scheduling.easy.difficulty = nextDifficulty(d: d, rating: .Easy)
+        scheduling.easy.stability = nextRecallStability(d: scheduling.easy.difficulty, s: s, r: retrievability, rating: .Easy)
+    }
+
+    func initStability(_ rating: Rating) -> Double {
+        return initStability(r: rating.rawValue)
+    }
+
+    func initStability(r: Int) -> Double {
+        return max(p.w[r - 1], 0.1)
+    }
+
+    func initDifficulty(_ rating: Rating) -> Double {
+        return initDifficulty(r: rating.rawValue)
+    }
+
+    func initDifficulty(r: Int) -> Double {
+        return min(max(p.w[4] - p.w[5] * Double(r - 3), 1.0), 10.0)
+    }
+
+    func nextInterval(s: Double) -> Double {
+        let interval = s * 9 * (1 / p.requestRetention - 1)
+        return min(max(round(interval), 1), p.maximumInterval)
+    }
+
+    func nextDifficulty(d: Double, rating: Rating) -> Double {
+        let r = rating.rawValue
+        let nextD = d - p.w[6] * Double(r - 3)
+        return min(max(meanReversion(p.w[4], current: nextD), 1.0), 10.0)
+    }
+
+    func meanReversion(_ initial: Double, current: Double) -> Double {
+        return p.w[7] * initial + (1 - p.w[7]) * current
+    }
+
+    func nextRecallStability(d: Double, s: Double, r: Double, rating: Rating) -> Double {
+        let hardPenalty = (rating == .Hard) ? p.w[15] : 1
+        let easyBonus = (rating == .Easy) ? p.w[16] : 1
+        return s * (1 + exp(p.w[8]) * (11 - d) * pow(s, -p.w[9]) * (exp((1 - r) * p.w[10]) - 1) * hardPenalty * easyBonus)
+    }
+
+    func nextForgetStability(d: Double, s: Double, r: Double) -> Double {
+        return p.w[11] * pow(d, -p.w[12]) * (pow(s + 1.0, p.w[13]) - 1) * exp((1 - r) * p.w[14])
+    }
+}
+
+//
+//  EditFlashcardView.swift
+//  NeoNotes
+//
+//  Created by Danny Ramírez on 25.11.23.
+//
+
+import SwiftUI
+import AVFoundation
+
+struct EditFlashcardView: View {
+    @ObservedObject var viewModel: FlashcardViewModel
+    @Environment(\.presentationMode) var presentationMode
+    @State private var question: String = ""
+    @State private var answer: String = ""
+    @State private var isSaving = false
+    
+    @State private var questionAudioURL: URL?
+    @State private var answerAudioURL: URL?
+    @State private var questionAudioFilename: String = ""
+    @State private var answerAudioFilename: String = ""
+    @State private var audioPlayer: AVAudioPlayer?
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("Question")
+                    .padding(.leading, 20)
+                    .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)) {
+                    TextEditor(text: $question)
+                        .frame(minHeight: 50, maxHeight: .infinity)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 5)
+                                .stroke(Color.gray, lineWidth: 1)
+                        )
+                        .padding(.horizontal)
+                        
+                        AudioManagementView(audioURL: $questionAudioURL,
+                                            audioFilename: $questionAudioFilename,
+                                            onUpload: { uploadAudio(for: .question) },
+                                            onPlay: { playAudio(url: questionAudioURL) },
+                                            onDelete: { deleteAudioFile(for: .question) })
+                    }
+            
+                Section(header: Text("Answer")
+                    .padding(.leading, 20)
+                    .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)) {
+                    TextEditor(text: $answer)
+                        .frame(minHeight: 50, maxHeight: .infinity)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 5)
+                                .stroke(Color.gray, lineWidth: 1)
+                        )
+                        .padding(.horizontal)
+                        
+                        AudioManagementView(audioURL: $answerAudioURL,
+                                            audioFilename: $answerAudioFilename,
+                                            onUpload: { uploadAudio(for: .answer) },
+                                            onPlay: { playAudio(url: answerAudioURL) },
+                                            onDelete: { deleteAudioFile(for: .answer) })
+                }
+            }
+            .navigationTitle("Edit Flashcard")
+            .toolbar {
+                ToolbarItemGroup(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                }
+                ToolbarItemGroup(placement: .confirmationAction) {
+                    Button("Save") {
+                        isSaving = true
+                        viewModel.updateFlashcard(question: question, 
+                                                  answer: answer,
+                                                  questionAudio: questionAudioFilename.isEmpty ? nil : questionAudioFilename,
+                                                  answerAudio: answerAudioFilename.isEmpty ? nil : answerAudioFilename)
+                        // Delay dismissal to simulate saving time
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                            isSaving = false
+                            presentationMode.wrappedValue.dismiss()
+                        }
+                    }
+                    .disabled(question.isEmpty || answer.isEmpty || isSaving)
+                }
+            }
+            .onAppear {
+                if let flashcard = viewModel.flashcard {
+                    question = flashcard.question ?? ""
+                    answer = flashcard.answer ?? ""
+                    
+                    questionAudioFilename = flashcard.questionAudioFilename ?? ""
+                    answerAudioFilename = flashcard.answerAudioFilename ?? ""
+                    
+                    questionAudioURL = getAudioFileURL(filename: questionAudioFilename)
+                    answerAudioURL = getAudioFileURL(filename: answerAudioFilename)
+                }
+            }
+            .overlay(
+                isSaving ? ProgressView("Saving...").progressViewStyle(CircularProgressViewStyle()) : nil
+            )
+        }
+    }
+    
+    // Functions for handling audio operations
+    private func uploadAudio(for fieldType: FieldType) {
+        let openPanel = NSOpenPanel()
+        openPanel.prompt = "Select Audio File"
+        openPanel.allowsMultipleSelection = false
+        openPanel.canChooseFiles = true
+        openPanel.canChooseDirectories = false
+        if #available(macOS 12.0, *) {
+            openPanel.allowedContentTypes = [
+                UTType.mp3,
+                UTType.wav,
+                UTType.audio,
+                UTType(exportedAs: "public.mpeg-4-audio") // For M4A, check if this identifier is correct for your case
+            ]
+        } else {
+            // Fallback on earlier versions
+            openPanel.allowedFileTypes = ["mp3", "m4a", "wav", "aac"]
+        }
+        openPanel.begin { response in
+            if response == .OK, let selectedURL = openPanel.url {
+                DispatchQueue.main.async {
+                    switch fieldType {
+                    case .question:
+                        self.questionAudioURL = selectedURL
+                        self.questionAudioFilename = selectedURL.lastPathComponent
+                    case .answer:
+                        self.answerAudioURL = selectedURL
+                        self.answerAudioFilename = selectedURL.lastPathComponent
+                    }
+                    // Copy the file to the app's directory and save the filename in the view model
+                    self.copyAudioFileToAppDirectory(from: selectedURL, for: fieldType)
+                }
+            }
+        }
+    }
+
+    private func copyAudioFileToAppDirectory(from url: URL, for fieldType: FieldType) {
+        let fileManager = FileManager.default
+        let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let destinationURL = documentsDirectory.appendingPathComponent(url.lastPathComponent)
+
+        do {
+            // Check if file exists before copying
+            if fileManager.fileExists(atPath: destinationURL.path) {
+                try fileManager.removeItem(at: destinationURL)
+            }
+            try fileManager.copyItem(at: url, to: destinationURL)
+            
+            // Update the state variables with the new file location
+            DispatchQueue.main.async {
+                switch fieldType {
+                case .question:
+                    self.questionAudioURL = destinationURL
+                    self.questionAudioFilename = destinationURL.lastPathComponent
+                case .answer:
+                    self.answerAudioURL = destinationURL
+                    self.answerAudioFilename = destinationURL.lastPathComponent
+                }
+            }
+        } catch {
+            print("Failed to copy audio file: \(error)")
+        }
+    }
+
+    
+    private func playAudio(url: URL?) {
+        guard let url = url else {
+            print("Audio URL is nil")
+            return
+        }
+
+        do {
+            audioPlayer = try AVAudioPlayer(contentsOf: url)
+            audioPlayer?.play()
+        } catch {
+            print("Failed to play audio: \(error.localizedDescription)")
+        }
+    }
+
+    private func deleteAudioFile(for fieldType: FieldType) {
+        // Set the appropriate state variables to nil
+        switch fieldType {
+        case .question:
+            questionAudioURL = nil
+            questionAudioFilename = ""
+        case .answer:
+            answerAudioURL = nil
+            answerAudioFilename = ""
+        }
+
+        // Additional file system cleanup can be done here if needed
+    }
+    
+    private func getAudioFileURL(filename: String) -> URL? {
+        guard !filename.isEmpty else { return nil }
+        let fileManager = FileManager.default
+        let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        return documentsDirectory.appendingPathComponent(filename)
+    }
+    
+}
+
+struct AudioManagementView: View {
+    @Binding var audioURL: URL?
+    @Binding var audioFilename: String
+    
+    @State private var isHoveringPlay = false
+    @State private var isHoveringTrash = false
+    
+    var onUpload: () -> Void
+    var onPlay: () -> Void
+    var onDelete: () -> Void
+
+    var body: some View {
+        VStack {
+            HStack {
+                // Display the filename if available
+                if !audioFilename.isEmpty {
+                    Text(audioFilename)
+                        .padding(.leading, 5)
+                    Spacer()
+                    Button(action: onPlay) {
+                        Image(systemName: "play.circle.fill")
+                            .foregroundColor(isHoveringPlay ? .blue : .gray)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .padding(.trailing, 5)
+                    .onHover { hovering in
+                        isHoveringPlay = hovering
+                    }
+
+                    Button(action: onDelete) {
+                        Image(systemName: "trash.fill")
+                            .foregroundColor(isHoveringTrash ? .red : .gray)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .padding(.trailing, 5)
+                    .onHover { hovering in
+                        isHoveringTrash = hovering
+                    }
+                } else {
+                    // Show a message or leave blank if no audio file
+                    Text("No audio file selected")
+                        .italic()
+                        .foregroundColor(.gray)
+                }
+            }
+            .frame(height: 30)
+            .padding(.horizontal, 5)
+            .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.2)))
+
+            Button("Upload Audio") {
+                onUpload()
+            }
+            .buttonStyle(.borderedProminent)
+            .padding(.top, 5)
+        }
+    }
+}
+//
+//  FlashcardViewModel.swift
+//  NeoNotes
+//
+//  Created by Danny Ramírez on 01.12.23.
+//
+
+import SwiftUI
+import CoreData
+
+class FlashcardViewModel: ObservableObject {
+    @Published var flashcard: Flashcard?
+    private var viewContext: NSManagedObjectContext
+
+    init(context: NSManagedObjectContext) {
+        self.viewContext = context
+    }
+    
+    func loadNextFlashcard(from category: Category) {
+        let currentDate = Date()
+        let request: NSFetchRequest<Flashcard> = Flashcard.fetchRequest()
+        request.predicate = NSPredicate(format: "category == %@ AND due <= %@", category, currentDate as CVarArg)
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \Flashcard.due, ascending: true)]
+        request.fetchLimit = 1
+        
+        do {
+            let results = try viewContext.fetch(request)
+            if let flashcard = results.first {
+                DispatchQueue.main.async {
+                    self.flashcard = flashcard
+                }
+            } else {
+                DispatchQueue.main.async {
+                    self.flashcard = nil
+                }
+            }
+        } catch {
+            print("Error fetching flashcards: \(error)")
+        }
+    }
+    
+    func loadFlashcard(withID id: UUID) {
+        let request: NSFetchRequest<Flashcard> = Flashcard.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+        request.fetchLimit = 1
+
+        do {
+            let results = try viewContext.fetch(request)
+            DispatchQueue.main.async {
+                self.flashcard = results.first
+            }
+        } catch {
+            print("Error fetching flashcard: \(error)")
+        }
+    }
+
+    func saveFlashcard() {
+        do {
+            try viewContext.save()
+        } catch {
+            print("Error saving context: \(error.localizedDescription)")
+        }
+    }
+
+    func updateFlashcard(question: String, answer: String, questionAudio: String?, answerAudio: String?) {
+        print("Updating flashcard with question: \(question), answer: \(answer)")
+        flashcard?.question = question
+        flashcard?.answer = answer
+        flashcard?.questionAudioFilename = questionAudio ?? ""
+        flashcard?.answerAudioFilename = answerAudio ?? ""
+        
+        if questionAudio == nil {
+            deleteAudioFromDocuments(filename: flashcard?.questionAudioFilename)
+        }
+        if answerAudio == nil {
+            deleteAudioFromDocuments(filename: flashcard?.answerAudioFilename)
+        }
+        saveFlashcard()
+    }
+    
+    private func deleteAudioFromDocuments(filename: String?) {
+        guard let filename = filename, !filename.isEmpty else { return }
+        let fileManager = FileManager.default
+        let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let fileURL = documentsDirectory.appendingPathComponent(filename)
+        do {
+            try fileManager.removeItem(at: fileURL)
+        } catch {
+            print("Failed to delete audio file: \(error.localizedDescription)")
+        }
+    }
+}
+//
+//  FlashcardsStudyView.swift
+//  NeoNotes
+//
+//  Created by Danny Ramírez on 22.11.23.
+//
+
+import SwiftUI
+import CoreData
+import AVFoundation
+
+struct FlashcardsStudyView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    @State private var triggerViewUpdate: Bool = false
+    @State private var audioPlayer: AVAudioPlayer?
+    @State private var isFlipped = false
+    @State private var isEditing = false
+    
+    @State private var currentStudySession: StudySession?
+    @State private var reviewedFlashcardsCount: Int = 0
+    
+    @State private var countAgain: Int = 0
+    @State private var countHard: Int = 0
+    @State private var countGood: Int = 0
+    @State private var countEasy: Int = 0
+
+    @ObservedObject var viewModel = FlashcardViewModel(context: PersistenceController.shared.container.viewContext)
+    
+    var category: Category
+    let fsrsEngine = FSRS()
+    
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \Flashcard.due, ascending: true)],
+        animation: .default)
+    private var flashcards: FetchedResults<Flashcard>
+    
+    var body: some View {
+        VStack {
+            if let flashcard = flashcards.first(where: { $0.category == category && ($0.due ?? Date()) <= Date() }) {
+                ZStack {
+                    if !isFlipped {
+                        VStack {
+                            Text(flashcard.question ?? "No Question")
+                                .font(.title)
+                                .foregroundStyle(.black)
+                            
+                            if let questionAudioFilename = flashcard.questionAudioFilename, !questionAudioFilename.isEmpty {
+                                let fileURL = getDocumentsDirectory().appendingPathComponent(questionAudioFilename)
+                                if FileManager.default.fileExists(atPath: fileURL.path) {
+                                    playButton(for: questionAudioFilename, isFlipped: isFlipped)
+                                }
+                            }
+                        }
+                    }
+                    if isFlipped {
+                        VStack {
+                            Text(flashcard.answer ?? "No Answer")
+                                .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
+                                .font(.title)
+                                .foregroundStyle(.black)
+                            
+                            // Play button for answer audio
+                            if let answerAudioFilename = flashcard.answerAudioFilename, !answerAudioFilename.isEmpty {
+                                let fileURL = getDocumentsDirectory().appendingPathComponent(answerAudioFilename)
+                                if FileManager.default.fileExists(atPath: fileURL.path) {
+                                    playButton(for: answerAudioFilename, isFlipped: isFlipped)
+                                }
+                            }
+                        }
+                    }
+                }
+                .frame(width: 600, height: 400)
+                .background(Color.white)
+                .cornerRadius(10)
+                .shadow(radius: 5)
+                .rotation3DEffect(.degrees(isFlipped ? 180 : 0), axis: (x: 0, y: 1, z: 0))
+                .onTapGesture {
+                    withAnimation {
+                        isFlipped.toggle()
+                    }
+                }
+                
+                if let flashcard = viewModel.flashcard {
+                    let nextDueDates = getNextDueDates(flashcard: flashcard)
+                    
+                    HStack {
+                        Spacer(minLength: 20)
+                        ForEach([Rating.Again, Rating.Hard, Rating.Good, Rating.Easy], id: \.self) { rating in
+                            if let dueDate = nextDueDates[rating] {
+                                RatingButton(
+                                    text: rating.description,
+                                    subtitle: dueDate.formatted(), // Format the date here
+                                    color: colorForRating(rating),
+                                    action: { rateFlashcard(rating: rating) },
+                                    shortcut: KeyEquivalent(Character(String(rating.rawValue))),
+                                    tooltip: "Shortcut: \(rating.rawValue)"
+                                )
+                            }
+                        }
+                        Spacer(minLength: 20)
+                    }
+                }
+            } else {
+                Text("No flashcards to review.")
+            }
+        }
+        .sheet(isPresented: $isEditing) {
+            EditFlashcardView(viewModel: viewModel)
+                .frame(minHeight: 400)
+        }
+        .toolbar { editButton }
+        .onAppear {
+            viewModel.loadNextFlashcard(from: category)
+            startStudySession()
+        }
+        .onDisappear {
+            endStudySession()
+        }
+    }
+    
+    private var editButton: some ToolbarContent {
+        ToolbarItem(placement: .automatic) {
+            Button(action: { isEditing.toggle() }) {
+                Label("Edit", systemImage: "pencil")
+            }
+            .disabled(flashcards.first(where: { $0.category == category }) == nil)
+            .help("Edit Flashcard")
+        }
+    }
+    
+    private func rateFlashcard(rating: Rating) {
+        guard let flashcard = viewModel.flashcard else { return }
+        let card = flashcard.toCard()
+
+        // Use FSRS engine to update the card based on the rating
+        let updatedCardInfo = fsrsEngine.repeat(card: card, now: Date())
+
+        // Choose the updated card based on the rating
+        if let updatedCard = updatedCardInfo[rating]?.card {
+            flashcard.updateFromCard(updatedCard)
+            saveContext()
+
+            viewModel.loadNextFlashcard(from: category)
+            isFlipped = false
+            reviewedFlashcardsCount += 1
+            
+            switch rating {
+                case .Again:
+                    countAgain += 1
+                case .Hard:
+                    countHard += 1
+                case .Good:
+                    countGood += 1
+                case .Easy:
+                    countEasy += 1
+            }
+        }
+    }
+
+    private func saveContext() {
+        do {
+            try viewContext.save()
+        } catch {
+            // Handle the error
+        }
+    }
+    
+    private func playAudio(filename: String) {
+        let fileURL = getDocumentsDirectory().appendingPathComponent(filename)
+        do {
+            audioPlayer = try AVAudioPlayer(contentsOf: fileURL)
+            audioPlayer?.play()
+        } catch {
+            print("Unable to play audio: \(error)")
+        }
+    }
+    
+    @ViewBuilder
+    private func playButton(for audioFilename: String, isFlipped: Bool) -> some View {
+        Button(action: {
+            playAudio(filename: audioFilename)
+        }) {
+            Image(systemName: "play.circle")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 44, height: 44)
+                .foregroundStyle(.black)
+                .rotationEffect(.degrees(isFlipped ? 180 : 0))
+        }
+        .buttonStyle(PlainButtonStyle())
+        .onTapGesture {
+            playAudio(filename: audioFilename)
+        }
+    }
+    
+    // Helper function to get the path to the documents directory
+    private func getDocumentsDirectory() -> URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    }
+    
+    func getNextDueDates(flashcard: Flashcard) -> [Rating: Date] {
+        let card = flashcard.toCard()
+        let fsrsEngine = FSRS()
+        let schedulingInfo = fsrsEngine.repeat(card: card, now: Date())
+        
+        var nextDueDates: [Rating: Date] = [:]
+        for (rating, info) in schedulingInfo {
+            nextDueDates[rating] = info.card.due
+        }
+        return nextDueDates
+    }
+    
+    func colorForRating(_ rating: Rating) -> Color {
+        switch rating {
+        case .Again:
+            return Color.red
+        case .Hard:
+            return Color.orange
+        case .Good:
+            return Color.green
+        case .Easy:
+            return Color.blue
+        }
+    }
+    
+    func startStudySession() {
+        let newSession = StudySession(context: viewContext)
+        newSession.id = UUID()
+        newSession.startTime = Date()
+        currentStudySession = newSession
+        reviewedFlashcardsCount = 0
+    }
+
+    func endStudySession() {
+        guard let session = currentStudySession else { return }
+        session.endTime = Date()
+        session.duration = session.endTime?.timeIntervalSince(session.startTime ?? Date()) ?? 0
+        session.cardsReviewed = Int64(reviewedFlashcardsCount)
+        
+        session.countAgain = Int64(countAgain)
+        session.countHard = Int64(countHard)
+        session.countGood = Int64(countGood)
+        session.countEasy = Int64(countEasy)
+
+        currentStudySession = nil
+        reviewedFlashcardsCount = 0
+        countAgain = 0
+        countHard = 0
+        countGood = 0
+        countEasy = 0
+        
+        
+        do {
+            try viewContext.save()
+        } catch {
+            print("Error saving study session: \(error)")
+        }
+    }
+}
+
+struct RatingButton: View {
+    let text: String
+    let subtitle: String? // Date string
+    let color: Color
+    let action: () -> Void
+    let shortcut: KeyEquivalent
+    let tooltip: String
+    @State private var isPressed = false
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: {
+            self.isPressed = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.isPressed = false
+                self.action()
+            }
+        }) {
+            VStack {
+                Text(text)
+                    .fontWeight(.bold)
+                if let subtitle = subtitle {
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+            }
+            .padding()
+            .frame(minWidth: 0, maxWidth: .infinity)
+            .background(color)
+            .foregroundColor(.white)
+            .cornerRadius(5)
+            .shadow(radius: isHovered ? 7 : 5)
+            .scaleEffect(isPressed ? 0.95 : 1.0)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .keyboardShortcut(shortcut, modifiers: [])
+        .help(tooltip)
+        .animation(.easeInOut, value: isPressed)
+        .onHover { hovering in
+            self.isHovered = hovering
+        }
+        .opacity(isHovered ? 0.9 : 1.0)
+    }
+}
+
+//
+//  StatisticsView.swift
+//  NeoNotes
+//
+//  Created by Danny Ramírez on 27.11.23.
+//
+
+import SwiftUI
+import CoreData
+import Charts
+
+struct StatisticsView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \StudySession.startTime, ascending: true)],
+        animation: .default)
+    private var studySessions: FetchedResults<StudySession>
+
+    @Environment(\.calendar) var calendar
+    @Environment(\.locale) var locale
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading) {
+                studySessionDurationChart
+                numberOfCardsReviewedChart
+                performanceMetricsChart
+            }
+            .padding(.leading)
+        }
+    }
+
+    private var studySessionDurationChart: some View {
+        VStack {
+            chartTitle("Study Session Durations")
+            Chart {
+                ForEach(studySessions, id: \.self) { session in
+                    if let startTime = session.startTime {
+                        BarMark(
+                            x: .value("Date", formattedDate(startTime)),
+                            y: .value("Duration", session.duration / 60) // Convert to minutes
+                        )
+                        .foregroundStyle(.blue)
+                        .annotation(position: .top, alignment: .center) {
+                            Text("\(Int(session.duration / 60)) min")
+                        }
+                    }
+                }
+            }
+            .frame(height: 200)
+        }
+    }
+
+    private var numberOfCardsReviewedChart: some View {
+        VStack {
+            chartTitle("Number of Cards Reviewed")
+            Chart {
+                ForEach(studySessions, id: \.self) { session in
+                    if let startTime = session.startTime {
+                        BarMark(
+                            x: .value("Date", formattedDate(startTime)),
+                            y: .value("Cards Reviewed", session.cardsReviewed)
+                        )
+                        .foregroundStyle(.green)
+                    }
+                }
+            }
+            .frame(height: 200)
+        }
+    }
+    
+    private func countForRating(rating: Rating, in session: StudySession) -> Int {
+        switch rating {
+        case .Again:
+            return Int(session.countAgain)
+        case .Hard:
+            return Int(session.countHard)
+        case .Good:
+            return Int(session.countGood)
+        case .Easy:
+            return Int(session.countEasy)
+        }
+    }
+    
+    private var performanceMetricsChart: some View {
+        VStack {
+            chartTitle("Performance Metrics")
+            Chart {
+                ForEach(studySessions, id: \.self) { session in
+                    if let startTime = session.startTime {
+                        ForEach(Rating.allCases, id: \.self) { rating in
+                            BarMark(
+                                x: .value("Rating", rating.description),
+                                y: .value("Count", countForRating(rating: rating, in: session))
+                            )
+                            .foregroundStyle(by: .value("Rating", rating.description))
+                        }
+                    }
+                }
+            }
+            .frame(height: 200)
+        }
+    }
+
+    private func chartTitle(_ text: String) -> some View {
+        Text(text)
+            .font(.headline)
+            .padding([.top, .horizontal])
+    }
+
+    private func formattedDate(_ date: Date) -> String {
+        DateFormatter.localizedString(from: date, dateStyle: .medium, timeStyle: .none)
+    }
+}
+
+extension Rating: CaseIterable {
+    public static var allCases: [Rating] {
+        return [.Again, .Hard, .Good, .Easy]
+    }
+}
+//
+//  Extensions.swift
+//  NeoNotes
+//
+//  Created by Danny Ramírez on 01.12.23.
+//
+
+import Foundation
+//
+//  RenameFolderView.swift
+//  NeoNotes
+//
+//  Created by Danny Ramírez on 02.12.23.
+//
+
+import SwiftUI
+
+struct RenameFolderView: View {
+    @Binding var isPresented: Bool
+    @Binding var folderName: String
+    let onRename: (String) -> Void
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Rename Folder")
+                .font(.headline)
+            
+            TextField("New name", text: $folderName)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding()
+            
+            HStack {
+                Button("Cancel") {
+                    isPresented = false
+                }
+                Button("Save") {
+                    onRename(folderName)
+                    isPresented = false
+                }
+            }
+        }
+        .padding()
+        .frame(width: 300)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.gray, lineWidth: 1)
+        )
+    }
+}
+
+
+//
+//  NotesViewModel.swift
+//  NeoNotes
+//
+//  Created by Danny Ramírez on 01.12.23.
+//
+
+import Foundation
+import CoreData
+
+class NotesViewModel: ObservableObject {
+    private let context: NSManagedObjectContext
+    @Published var folders: [Folder] = []
+    
+    init(context: NSManagedObjectContext) {
+        self.context = context
+        fetchFolders()
+    }
+    
+    func fetchFolders() {
+        print("Fetching folders...")
+        let request: NSFetchRequest<Folder> = Folder.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \Folder.name, ascending: true)]
+        
+        DispatchQueue.main.async {
+            do {
+                self.folders = try self.context.fetch(request)
+                print("Folders fetched successfully. Total folders: \(self.folders.count)")
+            } catch {
+                print("Error fetching folders: \(error)")
+            }
+        }
+    }
+
+    // Function to add a new folder
+    func addFolder(withName name: String, parentFolderID: UUID?) {
+        let folder = Folder(context: context)
+        folder.id = UUID()
+        folder.name = name
+        
+        if let parentID = parentFolderID {
+            if let parentFolder = fetchFolder(withID: parentID) {
+                folder.parentFolder = parentFolder
+            }
+        }
+        
+        saveContext()
+        fetchFolders()
+    }
+
+    // Helper method to fetch the "Notes" root folder
+    private func fetchNotesRootFolder() -> Folder? {
+        let request: NSFetchRequest<Folder> = Folder.fetchRequest()
+        request.predicate = NSPredicate(format: "name == %@", "Notes")
+        request.fetchLimit = 1 // There should only be one "Notes" root folder
+        
+        do {
+            return try context.fetch(request).first
+        } catch {
+            print("Error fetching 'Notes' root folder: \(error)")
+            return nil
+        }
+    }
+
+    // Helper method to create the "Notes" root folder
+    private func createNotesRootFolder() -> Folder {
+        let folder = Folder(context: context)
+        folder.id = UUID()
+        folder.name = "Notes"
+        saveContext()
+        return folder
+    }
+
+    // Function to delete a folder and its contents
+    func deleteFolder(_ folder: Folder) {
+        context.delete(folder)
+        saveContext()
+        fetchFolders() // Refresh the folder list after deleting the folder
+    }
+    
+    // Helper function to fetch a folder by ID
+    private func fetchFolder(withID id: UUID) -> Folder? {
+        let request: NSFetchRequest<Folder> = Folder.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+        request.fetchLimit = 1 // We're fetching a specific folder by ID
+        
+        do {
+            return try context.fetch(request).first
+        } catch {
+            print("Error fetching folder with ID \(id): \(error)")
+            return nil
+        }
+    }
+    
+    func renameFolder(_ folder: Folder, to newName: String) {
+        print("Attempting to rename folder: \(folder.name ?? "Unnamed") to \(newName)")
+        folder.name = newName
+        
+        print("Folder renamed. Now refreshing folder list.")
+
+        saveContext()
+        DispatchQueue.main.async {
+            self.fetchFolders()
+        }
+    }
+
+    private func saveContext() {
+        if context.hasChanges {
+            do {
+                try context.save()
+                print("Context saved successfully.")
+            } catch {
+                // Handle the error appropriately
+                print("Error saving context: \(error)")
+            }
+        }
+    }
+}
+//
+//  EditorView.swift
+//  NeoNotes
+//
+//  Created by Danny Ramírez on 01.12.23.
+//
+
+import SwiftUI
+
+struct EditorView: View {
+    @State private var markdownText: String = ""
+
+    var body: some View {
+        TextEditor(text: $markdownText)
+            .border(Color.gray, width: 1)
+            .padding()
+    }
+}
+
+struct AddFolderView: View {
+    @Binding var isPresented: Bool
+    @ObservedObject var notesViewModel: NotesViewModel
+    @State private var folderName: String = ""
+
+    var body: some View {
+        VStack {
+            Text("Enter new folder name:")
+            TextField("Folder Name", text: $folderName)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding()
+
+            HStack {
+                Button("Cancel") {
+                    isPresented = false
+                }
+                .keyboardShortcut(.cancelAction)
+                
+                Button("Add") {
+                    notesViewModel.addFolder(withName: folderName, parentFolderID: nil)
+                    isPresented = false
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(folderName.isEmpty)
+            }
+            .padding()
+        }
+        .frame(width: 300, height: 120)
+        .padding()
+    }
+}
+//
+//  DecksView.swift
+//  NeoNotes
+//
+//  Created by Danny Ramírez on 21.11.23.
+//
+
+import SwiftUI
+import CoreData
+
+struct DecksView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    @State private var showingAddDeck = false
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \Deck.creationDate, ascending: true)],
+        animation: .default)
+    private var decks: FetchedResults<Deck>
+
+    var body: some View {
+        let columns = [
+            GridItem(.flexible(minimum: 160)),
+            GridItem(.flexible(minimum: 160))
+        ]
+        
+        ScrollView {
+            LazyVGrid(columns: columns, spacing: 30) {
+                ForEach(decks) { deck in
+                    DeckCardView(deck: deck)
+                }
+            }
+            .padding(.horizontal)
+        }
+        .navigationTitle("Decks")
+        .toolbar {
+            ToolbarItem(placement: .automatic) { // For macOS
+                Button(action: {
+                    showingAddDeck.toggle()
+                }) {
+                    Label("Add Deck", systemImage: "plus")
+                }
+            }
+        }
+        .sheet(isPresented: $showingAddDeck) {
+            AddDeckView(isPresented: $showingAddDeck)
+        }
+    }
+}
+
+struct AddDeckView: View {
+    @Binding var isPresented: Bool
+    @Environment(\.managedObjectContext) private var viewContext
+    @State private var deckName = ""
+
+    var body: some View {
+            VStack {
+                HStack {
+                    Text("New Deck")
+                        .font(.headline)
+                        .padding()
+                }
+
+                Divider()
+
+                TextField("Deck Name", text: $deckName)
+                    .textFieldStyle(.roundedBorder)
+                    .padding()
+                HStack {
+                    Button("Cancel") {
+                        isPresented = false
+                    }
+                    .padding()
+                    .buttonStyle(.bordered)
+                    
+                    Button("Save") {
+                        addNewDeck()
+                        isPresented = false
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .padding()
+                }
+            }
+            .frame(width: 300, height: 200)
+            .padding()
+        }
+
+    private func addNewDeck() {
+        withAnimation {
+            let newDeck = Deck(context: viewContext)
+            newDeck.id = UUID()
+            newDeck.name = deckName
+            newDeck.creationDate = Date()
+
+            do {
+                try viewContext.save()
+            } catch {
+                // Handle the error appropriately
+            }
+        }
+    }
+}
+
+struct DeckCardView: View {
+    @ObservedObject var deck: Deck
+    @Environment(\.managedObjectContext) private var viewContext
+    @State private var isHovered = false
+    @State private var showingRenameAlert = false
+    @State private var newName = ""
+
+    var body: some View {
+        NavigationLink(destination: CategoriesView(deck: deck)) {
+            VStack(alignment: .leading) {
+                Text(deck.name ?? "Untitled")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                    .padding([.top, .horizontal])
+                Spacer()
+                HStack {
+                    Text("Study now")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                    Spacer()
+                    Button(action: {
+                        // Perform an action, like navigating to the deck details
+                    }) {
+                        Image(systemName: "arrow.right.circle.fill")
+                            .foregroundColor(.white)
+                            .imageScale(.large)
+                    }
+                }
+                .padding([.bottom, .horizontal])
+            }
+            .frame(minHeight: 180)
+            .background(gradientView(for: deck.backgroundName))
+            .cornerRadius(10)
+            .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
+            .scaleEffect(isHovered ? 1.03 : 1.0) // Scale the card slightly when hovered
+                .animation(.easeInOut(duration: 0.3), value: isHovered) // Animate the scale effect
+                .onHover { hover in
+                    isHovered = hover
+                }
+            .padding()
+            .contextMenu {
+                Button("Rename \(deck.name ?? "Deck")") {
+                    self.newName = deck.name ?? ""
+                    self.showingRenameAlert = true
+                }
+                Button(action: {
+                    deleteDeck(deck)
+                }) {
+                    Label("Delete \(deck.name ?? "Deck")", systemImage: "trash")
+                }
+                Menu("Change Background") {
+                    ForEach(gradientOptions.keys.sorted(), id: \.self) { key in
+                        Button(key) {
+                            changeBackground(to: key)
+                        }
+                    }
+                }
+            }
+            .alert("Rename Deck", isPresented: $showingRenameAlert) {
+                TextField("New name", text: $newName)
+                Button("Save", action: renameDeck)
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("Enter a new name for your deck.")
+            }
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
+    private func deleteDeck(_ deck: Deck) {
+        withAnimation {
+            viewContext.delete(deck)
+            
+            do {
+                try viewContext.save()
+            } catch {
+                // Handle the error appropriately
+                print(error.localizedDescription)
+            }
+        }
+    }
+    
+    private func renameDeck() {
+        withAnimation {
+            deck.name = self.newName
+            do {
+                try viewContext.save()
+            } catch {
+                // Handle the error
+                print(error.localizedDescription)
+            }
+        }
+    }
+    
+    private func gradientView(for name: String?) -> LinearGradient {
+        // Safely unwrap and return the gradient, or return a default gradient if nil
+        if let name = name, let gradient = gradientOptions[name] {
+            return LinearGradient(gradient: gradient, startPoint: .topLeading, endPoint: .bottomTrailing)
+        } else {
+            // Provide a default gradient if `name` is nil or doesn't match
+            return LinearGradient(gradient: gradientOptions["Default"]!, startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+    }
+
+    private func changeBackground(to name: String) {
+        deck.backgroundName = name
+        try? viewContext.save()
+    }
+}
+
+let gradientOptions: [String: Gradient] = [
+    "Sunset": Gradient(colors: [Color.red.opacity(0.7), Color.orange.opacity(0.7)]),
+    "Ocean": Gradient(colors: [Color.green.opacity(0.7), Color.blue.opacity(0.7)]),
+    "Orchid": Gradient(colors: [Color.purple.opacity(0.7), Color.pink.opacity(0.7)]),
+    "Forest": Gradient(colors: [Color.green.opacity(0.8), Color.brown.opacity(0.8)]),
+    "Berry": Gradient(colors: [Color.pink.opacity(0.7), Color.purple.opacity(0.7)]),
+    "Default": Gradient(colors: [Color.blue.opacity(0.7), Color.purple.opacity(0.7)])
+]
+
+//
+//  DeletableFileView.swift
+//  NeoNotes
+//
+//  Created by Danny Ramírez on 25.11.23.
+//
+
+import SwiftUI
+import AVFoundation
+
+struct DeletableFileView: View {
+    @State private var isHovering = false
+    @Binding var isPlaying: Bool
+    var filename: String
+    var onDelete: () -> Void
+    var onPlay: () -> Void
+    
+    var body: some View {
+        HStack {
+            Text(filename)
+                .padding(.leading, 5)
+            Spacer()
+            if isHovering {
+                Button(action: {
+                    self.isPlaying.toggle()
+                    onPlay()
+                }) {
+                    Image(systemName: isPlaying ? "stop.fill" : "play.fill")
+                        .foregroundColor(.blue)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .padding(.trailing, 5)
+                
+                Button(action: onDelete) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.red)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .padding(.trailing, 5)
+            }
+        }
+        .frame(height: 30)
+        .padding(.horizontal, 5)
+        .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.2)))
+        .onHover { hovering in
+            self.isHovering = hovering
+        }
+    }
+}
+
+class AudioPlayerManager: NSObject, AVAudioPlayerDelegate {
+    var audioPlayer: AVAudioPlayer?
+    var didFinishPlaying: (() -> Void)?
+
+    func playAudio(url: URL) {
+        do {
+            audioPlayer = try AVAudioPlayer(contentsOf: url)
+            audioPlayer?.delegate = self
+            audioPlayer?.play()
+        } catch {
+            print("Could not play audio. Error: \(error.localizedDescription)")
+        }
+    }
+
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        didFinishPlaying?()
+    }
+}
+//
+//  DocumentPicker.swift
+//  NeoNotes
+//
+//  Created by Danny Ramírez on 24.11.23.
+//
+
+#if canImport(UIKit)
+import UIKit
+
+struct DocumentPicker: UIViewControllerRepresentable {
+    var callback: (URL) -> Void
+
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.audio], asCopy: true)
+        picker.allowsMultipleSelection = false
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    class Coordinator: NSObject, UIDocumentPickerDelegate {
+        var parent: DocumentPicker
+
+        init(_ documentPicker: DocumentPicker) {
+            self.parent = documentPicker
+        }
+
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            guard let url = urls.first else { return }
+            parent.callback(url)
+        }
+    }
+}
+#endif
+//
+//  CategoriesView.swift
+//  NeoNotes
+//
+//  Created by Danny Ramírez on 22.11.23.
+//
+
+import SwiftUI
+import CoreData
+
+struct CategoriesView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    @ObservedObject var deck: Deck  // Pass the selected Deck to this view
+    @State private var showingAddFlashcard = false
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(deck.categoriesArray, id: \.self) { category in
+                    CategoryRow(category: category)
+                    .contextMenu {
+                        Button(action: {
+                            deleteCategory(category)
+                        }) {
+                            Label("Delete \(category.name ?? "Category")", systemImage: "trash")
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Categories in \(deck.name ?? "Deck")")
+            .toolbar {
+                ToolbarItem(placement: .automatic) { // Use 'automatic' for macOS
+                    Button(action: {
+                        showingAddFlashcard.toggle()
+                    }) {
+                        Label("Add Flashcard", systemImage: "plus")
+                    }
+                }
+            }
+            .sheet(isPresented: $showingAddFlashcard) {
+                // Present a view to add a new flashcard
+                AddFlashcardView(isPresented: $showingAddFlashcard, deck: deck)
+            }
+        }
+    }
+    
+    private func deleteCategory(_ category: Category) {
+        withAnimation {
+            viewContext.delete(category)
+            do {
+                try viewContext.save()
+            } catch {
+                // Handle the error appropriately
+                print("Error deleting category: \(error.localizedDescription)")
+            }
+        }
+    }
+}
+
+struct CategoryRow: View {
+    var category: Category
+    @State private var navigateToStudy = false
+    @State private var isHovering = false
+    @State private var isNameHovering = false
+
+
+    var body: some View {
+        HStack {
+            NavigationLink(destination: FlashcardsListView(category: category)) {
+                HStack {
+                    Image(systemName: "book.closed")
+                        .foregroundColor(.accentColor)
+                    Text(category.name ?? "Untitled")
+                        .fontWeight(.medium)
+                        .padding(3)
+                        .background(isNameHovering ? Color.gray.opacity(0.2) : Color.clear)
+                        .cornerRadius(5)
+                    
+                    Spacer()
+                    Text("\(category.flashcardsArray.count) cards")
+                        .foregroundColor(.secondary)
+                        .font(.subheadline)
+                }
+                .onHover { hovering in
+                    isNameHovering = hovering
+                }
+
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            Button("Study now") {
+                navigateToStudy = true
+            }
+            .buttonStyle(BorderlessButtonStyle())
+            .padding(8)
+            .background(isHovering ? Color.accentColor : Color.clear)
+            .foregroundColor(isHovering ? Color.white : Color.accentColor)
+            .cornerRadius(10)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8) // You can adjust the corner radius
+                    .stroke(isHovering ? Color.accentColor : Color.clear, lineWidth: 1) // Adjust line width for subtlety
+            )
+            .onHover { hovering in
+                isHovering = hovering
+            }
+            NavigationLink(destination: FlashcardsStudyView(category: category), isActive: $navigateToStudy) {
+                EmptyView()
+            }
+            .hidden()
+        }
+    }
+}
+
+// Extend Deck to have a computed property to convert categories Set to Array
+extension Deck {
+    var categoriesArray: [Category] {
+        let set = categories as? Set<Category> ?? []
+        return set.sorted { $0.name ?? "" < $1.name ?? "" }
+    }
+    
+    // Assume a default category for simplicity; replace with appropriate logic
+    var defaultCategory: Category? {
+        categoriesArray.first
+    }
+}
+
+extension Category {
+    var flashcardsArray: [Flashcard] {
+        let set = flashcards as? Set<Flashcard> ?? []
+        return set.sorted { $0.creationDate ?? Date() < $1.creationDate ?? Date() }
+    }
+}
+
+extension Flashcard {
+    func toCard() -> Card {
+        let card = Card()
+        // Map Flashcard properties to Card properties
+        card.due = self.due ?? Date() // Provide a default value if `self.due` is nil
+        card.difficulty = self.difficulty
+        card.stability = self.stability
+        card.reps = Int(self.reps)
+        card.lapses = Int(self.lapses)
+        card.status = Status(rawValue: Int(self.status)) ?? .New
+        card.lastReview = self.lastReview ?? Date()
+        return card
+    }
+
+    func updateFromCard(_ card: Card) {
+        // Map Card properties back to Flashcard
+        self.due = card.due // 'card.due' is non-optional, so direct assignment is fine
+        self.difficulty = card.difficulty
+        self.stability = card.stability
+        self.reps = Int16(card.reps)
+        self.lapses = Int16(card.lapses)
+        self.status = Int16(card.status.rawValue)
+        self.lastReview = card.lastReview
+    }
+}
+//
+//  FlashcardsListView.swift
+//  NeoNotes
+//
+//  Created by Danny Ramírez on 29.11.23.
+//
+
+import SwiftUI
+
+struct FlashcardsListView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    @FetchRequest var flashcards: FetchedResults<Flashcard>
+    var category: Category
+
+    init(category: Category) {
+        self.category = category
+        self._flashcards = FetchRequest<Flashcard>(
+            entity: Flashcard.entity(),
+            sortDescriptors: [],
+            predicate: NSPredicate(format: "category == %@", category)
+        )
+    }
+
+    var body: some View {
+        List {
+            ForEach(flashcards, id: \.self) { flashcard in
+                FlashcardView(flashcard: flashcard)
+            }
+            .onDelete(perform: deleteFlashcard)
+        }
+        .navigationTitle("Flashcards in \(category.name ?? "Category")")
+    }
+
+    private func deleteFlashcard(at offsets: IndexSet) {
+        for index in offsets {
+            let flashcard = flashcards[index]
+            viewContext.delete(flashcard)
+        }
+
+        do {
+            try viewContext.save()
+        } catch {
+            // Handle the error appropriately
+            print("Error deleting flashcard: \(error.localizedDescription)")
+        }
+    }
+}
+
+struct FlashcardView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    let flashcard: Flashcard
+    @State private var showAnswer = false
+    @State private var isHovered = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: "lightbulb")
+                    .foregroundColor(.blue)
+                Text(flashcard.question ?? "Untitled")
+                    .fontWeight(.bold)
+            }
+            
+            if showAnswer {
+                HStack {
+                    Image(systemName: "bubble.right")
+                        .foregroundColor(.green)
+                    Text(flashcard.answer ?? "No answer")
+                        .fontWeight(.regular)
+                        .foregroundColor(.secondary)
+                }
+                .transition(.opacity)
+            }
+        }
+        .padding()
+        .background(isHovered ? Color.gray.opacity(0.1) : Color.clear)
+        .cornerRadius(8)
+        .scaleEffect(isHovered ? 1.05 : 1)
+        .animation(.easeInOut(duration: 0.2), value: isHovered)
+        .shadow(radius: isHovered ? 5 : 0)
+        .onTapGesture {
+            withAnimation {
+                showAnswer.toggle()
+            }
+        }
+        .onHover { hover in
+            isHovered = hover
+        }
+        .contextMenu {
+            Button(role: .destructive) {
+                deleteFlashcard(flashcard)
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+    }
+
+    private func deleteFlashcard(_ flashcard: Flashcard) {
+        viewContext.delete(flashcard)
+        try? viewContext.save()
+    }
+}
+//
+//  AddFlashcardView.swift
+//  NeoNotes
+//
+//  Created by Danny Ramírez on 24.11.23.
+//
+
+import SwiftUI
+import CoreData
+import AVFoundation
+import UniformTypeIdentifiers
+
+struct AddFlashcardView: View {
+    @Binding var isPresented: Bool
+    @FocusState private var focusedField: FocusableField? 
+    @Environment(\.managedObjectContext) private var viewContext
+    var deck: Deck?
+    @State private var deckName = ""
+    @State private var flashcardQuestion = ""
+    @State private var flashcardAnswer = ""
+    @State private var categoryName = ""
+    
+    @State private var isHoveringQuestion = false
+    @State private var isHoveringAnswer = false
+    
+    @State private var questionAudioURL: URL?
+    @State private var answerAudioURL: URL?
+    
+    @State private var questionAudioFilename: String = ""
+    @State private var answerAudioFilename: String = ""
+    @State private var audioPlayer: AVAudioPlayer?
+    
+    private var audioPlayerManager = AudioPlayerManager()
+    @State private var isPlaying = false
+    
+    init(isPresented: Binding<Bool>, deck: Deck?) {
+        _isPresented = isPresented
+        self.deck = deck
+        _deckName = State(initialValue: deck?.name ?? "")
+    }
+
+    var body: some View {
+        VStack {
+            Text("Deck & Category")
+                .font(.headline)
+                .foregroundColor(.accentColor)
+                .padding(.bottom, 2)
+            
+            TextField("Deck", text: $deckName)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding()
+            TextField("Category", text: $categoryName)
+                .focused($focusedField, equals: .category)
+                .onSubmit { focusedField = .question }
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding()
+            
+            Text("Flashcard Details")
+                .font(.headline)
+                .foregroundColor(.accentColor)
+                .padding(.bottom, 2)
+            HStack {
+                VStack {
+                    TextField("Question", text: $flashcardQuestion)
+                        .focused($focusedField, equals: .question)
+                        .onSubmit { focusedField = .answer}
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                    
+//                    Text("Question")
+//                        .frame(maxWidth: .infinity, alignment: .leading)
+//                        .padding(.leading)
+//                    TextEditor(text: $flashcardQuestion)
+//                        .focused($focusedField, equals: .question)
+//                        .onSubmit { focusedField = .answer}
+//                        .frame(minHeight: 50, maxHeight: .infinity)
+//                        .overlay(
+//                            RoundedRectangle(cornerRadius: 5)
+//                                .stroke(Color.gray, lineWidth: 1)
+//                        )
+//                        .padding(.horizontal)
+                    
+                    if !questionAudioFilename.isEmpty {
+                     
+                        DeletableFileView(isPlaying: $isPlaying, filename: questionAudioFilename, onDelete: {
+                            deleteAudioFile(for: .question)
+                        },
+                        onPlay: {
+                            if let url = questionAudioURL {
+                                playAudio(url: url)
+                            } else {
+                                print("No URL set for question audio")
+                            }
+                        })
+                    }
+                }
+                
+                Button(action: {
+                    uploadAudio(for: .question)
+                }) {
+                    Image(systemName: "waveform.and.mic")
+                        .foregroundColor(isHoveringQuestion ? .blue : .gray)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .padding(.trailing, 10)
+                .onHover { hovering in
+                    isHoveringQuestion = hovering
+                }
+            }
+            .padding()
+            
+            HStack {
+                VStack {
+                    TextField("Answer", text: $flashcardAnswer)
+                        .focused($focusedField, equals: .answer)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .onSubmit {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                focusedField = .save
+                            }
+                        }
+                    
+//                    Text("Answer")
+//                        .frame(maxWidth: .infinity, alignment: .leading)
+//                        .padding(.leading)
+//                    TextEditor(text: $flashcardAnswer)
+//                        .focused($focusedField, equals: .answer)
+//                        .frame(minHeight: 50, maxHeight: .infinity)
+//                        .overlay(
+//                            RoundedRectangle(cornerRadius: 5)
+//                                .stroke(Color.gray, lineWidth: 1)
+//                        )
+//                        .padding(.horizontal)
+                    
+                    if !answerAudioFilename.isEmpty {
+                        DeletableFileView(isPlaying: $isPlaying, filename: answerAudioFilename, onDelete: {
+                            deleteAudioFile(for: .answer)
+                        },
+                        onPlay: {
+                            if let url = answerAudioURL {
+                                playAudio(url: url)
+                            } else {
+                                print("No URL set for question audio")
+                            }
+                        })
+                    }
+                }
+                
+                Button(action: {
+                    uploadAudio(for: .answer)
+                }) {
+                    Image(systemName: "waveform.and.mic")
+                        .foregroundColor(isHoveringAnswer ? .blue : .gray)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .padding(.trailing, 10)
+                .onHover { hovering in
+                    isHoveringAnswer = hovering
+                }
+            }
+            .padding()
+            
+            HStack {
+                Button("Cancel") {
+                    isPresented = false
+                }
+                .padding()
+                .buttonStyle(.bordered)
+                
+                Button("Save") {
+                    addFlashcard()
+                    isPresented = false
+                }
+                .focused($focusedField, equals: .save)
+                .disabled(flashcardQuestion.isEmpty || flashcardAnswer.isEmpty)
+                .buttonStyle(.borderedProminent)
+                .padding()
+            }
+        }
+        .padding()
+        .frame(width: 600, height: 400)
+    }
+
+    private func addFlashcard() {
+        let targetDeck: Deck
+        let newFlashcard = Flashcard(context: viewContext)
+        newFlashcard.id = UUID()
+        newFlashcard.creationDate = Date()
+        newFlashcard.question = flashcardQuestion
+        newFlashcard.answer = flashcardAnswer
+        newFlashcard.due = Date()
+        
+        // If no deck name is provided, use the existing deck, else find or create a new deck
+        if let deck = deck, deckName.isEmpty {
+            targetDeck = deck
+        } else {
+            targetDeck = findOrCreateDeck(named: deckName)
+        }
+
+        // Find or create the category
+        let category = findOrCreateCategory(named: categoryName, in: targetDeck)
+        newFlashcard.category = category
+
+        do {
+            try viewContext.save()
+        } catch {
+            // Handle errors
+            print("Error saving context: \(error)")
+        }
+        
+        if let questionURL = questionAudioURL {
+            let filename = saveAudioFile(questionURL)
+            newFlashcard.questionAudioFilename = filename
+        }
+        
+        if let answerURL = answerAudioURL {
+            let filename = saveAudioFile(answerURL)
+            newFlashcard.answerAudioFilename = filename
+        }
+    }
+    
+    private func findOrCreateDeck(named name: String) -> Deck {
+        let request: NSFetchRequest<Deck> = Deck.fetchRequest()
+        request.predicate = NSPredicate(format: "name == %@", name)
+        
+        if let existingDeck = try? viewContext.fetch(request).first {
+            return existingDeck
+        } else {
+            let newDeck = Deck(context: viewContext)
+            newDeck.id = UUID()
+            newDeck.name = name
+            newDeck.creationDate = Date()
+            return newDeck
+        }
+    }
+
+    private func findOrCreateCategory(named name: String, in deck: Deck) -> Category {
+        if let category = deck.categoriesArray.first(where: { $0.name == name }) {
+            return category
+        } else {
+            let newCategory = Category(context: viewContext)
+            newCategory.id = UUID()
+            newCategory.creationDate = Date() 
+            newCategory.name = name
+            newCategory.deck = deck
+            return newCategory
+        }
+    }
+    
+    private func uploadAudio(for fieldType: FieldType) {
+        #if os(iOS)
+        // For iOS, you might use a document picker or audio recorder
+        #elseif os(macOS)
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowedContentTypes = [
+            UTType(mimeType: "audio/mpeg") ?? UTType.audio, // for mp3
+            UTType(filenameExtension: "wav") ?? UTType.audio, // for wav
+            UTType(mimeType: "audio/x-m4a") ?? UTType.audio, // for m4a
+            UTType(mimeType: "audio/aac") ?? UTType.audio // for aac
+        ]
+
+        if panel.runModal() == .OK {
+            if let pickedURL = panel.url {
+                let pickedFilename = pickedURL.lastPathComponent
+                if fieldType == .question {
+                    questionAudioURL = pickedURL
+                    questionAudioFilename = pickedFilename
+                } else if fieldType == .answer {
+                    answerAudioURL = pickedURL
+                    answerAudioFilename = pickedFilename
+                }
+            }
+        }
+        #endif
+    }
+
+    private func saveAudioFile(_ audioURL: URL) -> String {
+        print("saveAudioFile called with URL: \(audioURL.path)")
+        let fileManager = FileManager.default
+        let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        
+        let newFilename = UUID().uuidString + "." + audioURL.pathExtension
+        let destinationURL = documentsDirectory.appendingPathComponent(newFilename)
+        
+        do {
+            if fileManager.fileExists(atPath: destinationURL.path) {
+                try fileManager.removeItem(at: destinationURL)
+            }
+            try fileManager.copyItem(at: audioURL, to: destinationURL)
+            return newFilename
+        } catch {
+            print("Error saving audio file: \(error)")
+            return ""
+        }
+    }
+
+    private func playAudio(filename: String? = nil, url: URL? = nil) {
+        let fileURL: URL
+
+        if let filename = filename {
+            let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+            fileURL = documentsDirectory.appendingPathComponent(filename)
+        } else if let url = url {
+            fileURL = url
+        } else {
+            print("No audio file specified")
+            return
+        }
+
+        if FileManager.default.fileExists(atPath: fileURL.path) {
+            audioPlayerManager.didFinishPlaying = {
+                DispatchQueue.main.async {
+                    self.isPlaying = false
+                }
+            }
+            audioPlayerManager.playAudio(url: fileURL)
+        } else {
+            print("Audio file does not exist at path: \(fileURL.path)")
+        }
+    }
+
+    
+    private func deleteAudioFile(for fieldType: FieldType) {
+        switch fieldType {
+        case .question:
+            if let url = questionAudioURL {
+                removeAudioFile(at: url)
+            }
+            questionAudioURL = nil
+            questionAudioFilename = ""
+        case .answer:
+            if let url = answerAudioURL {
+                removeAudioFile(at: url)
+            }
+            answerAudioURL = nil
+            answerAudioFilename = ""
+        }
+    }
+
+    private func removeAudioFile(at url: URL) {
+        do {
+            try FileManager.default.removeItem(at: url)
+        } catch {
+            print("Error removing file: \(error)")
+        }
+    }
+    
+    // Helper function to get the path to the documents directory
+    private func getDocumentsDirectory() -> URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    }
+}
+
+enum FieldType {
+    case question
+    case answer
+}
+
+enum FocusableField: Hashable {
+    case category, question, answer, save
+}
+//
+//  ContentView.swift
+//  NeoNotes
+//
+//  Created by Danny Ramírez on 21.11.23.
+//
+
+import SwiftUI
+
+struct ContentView: View {
+    @EnvironmentObject var viewModel: AppViewModel
+    @EnvironmentObject var notesViewModel: NotesViewModel
+    @State private var showingAddFolderSheet = false
+    @State private var hoveringAddFolder = false
+    @State private var hoveringDecks = false
+    @State private var hoveringStatistics = false
+    @State private var hoveringSettings = false
+    @State private var hoveringTodo = false
+    @State private var hoveringTrash = false
+    @State private var hoveringFolders = false
+
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #endif
+
+    var body: some View {
+        Group {
+            #if os(macOS)
+            NavigationSplitView(sidebar: {
+                sidebar
+            }, detail: {
+                DecksView()
+            })
+            .navigationSplitViewStyle(.balanced)
+            
+            #else
+            if horizontalSizeClass == .compact {
+                iPhoneTabView()
+            } else {
+                iPadSidebarView()
+            }
+            #endif
+        }
+        .sheet(isPresented: $viewModel.showingAddDeck) {
+            AddDeckView(isPresented: $viewModel.showingAddDeck)
+        }
+        .sheet(isPresented: $viewModel.showingAddFlashcard) {
+            AddFlashcardView(isPresented: $viewModel.showingAddFlashcard, deck: nil)
+        }
+        .sheet(isPresented: $showingAddFolderSheet) {
+            AddFolderView(isPresented: $showingAddFolderSheet, notesViewModel: notesViewModel)
+        }
+    }
+    
+    private var sidebar: some View {
+        List {
+            NavigationLink(destination: DecksView()) {
+                Label("Decks", systemImage: "rectangle.stack")
+                    .foregroundColor(hoveringDecks ? .accentColor : .primary)
+            }
+            .onHover { over in
+                hoveringDecks = over
+            }
+            .animation(.easeInOut, value: hoveringDecks)
+            
+            NavigationLink(destination: StatisticsView()) {
+                Label("Statistics", systemImage: "chart.bar")
+                    .foregroundColor(hoveringStatistics ? .accentColor : .primary)
+            }
+            .onHover { over in
+                hoveringStatistics = over
+            }
+            .animation(.easeInOut, value: hoveringStatistics)
+            
+            NavigationLink(destination: SettingsView()) {
+                Label("Settings", systemImage: "gear")
+                    .foregroundColor(hoveringSettings ? .accentColor : .primary)
+            }
+            .onHover { over in
+                hoveringSettings = over
+            }
+                    
+            Section(header: Text("Notes")) {
+                Button(action: {
+                    showingAddFolderSheet = true
+                }) {
+                    HStack {
+                        Image(systemName: "folder.badge.plus")
+                            .foregroundColor(hoveringAddFolder ? .accentColor : .gray)
+                        Text("Add Folder")
+                            .foregroundColor(hoveringAddFolder ? .accentColor : .primary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(BorderlessButtonStyle())
+                .onHover { over in
+                    hoveringAddFolder = over
+                }
+                .animation(.easeInOut, value: hoveringAddFolder)
+                .padding(.top, 5)
+                
+                ForEach(notesViewModel.folders, id: \.self) { folder in
+                    FolderView(folder: folder)
+                }
+                
+                NavigationLink(destination: Text("Todo View Placeholder")) {
+                    Label("Todo", systemImage: "checkmark.circle")
+                        .foregroundColor(hoveringTodo ? .accentColor : .primary)
+                }
+                .onHover { over in
+                    hoveringTodo = over
+                }
+                NavigationLink(destination: Text("Trash View Placeholder")) {
+                    Label("Trash", systemImage: "trash")
+                        .foregroundColor(hoveringTrash ? .accentColor : .primary)
+                }
+                .onHover { over in
+                    hoveringTrash = over
+                }
+            }
+        }
+        .listStyle(SidebarListStyle())
+        .frame(minWidth: 200, idealWidth: 250, maxWidth: 300)
+    }
+}
+
+#if os(iOS)
+struct iPhoneTabView: View {
+    var body: some View {
+        TabView {
+            DecksView()
+                .tabItem {
+                    Image(systemName: "rectangle.stack")
+                    Text("Flashcards")
+                }
+
+            SettingsView()
+                .tabItem {
+                    Image(systemName: "gear")
+                    Text("Settings")
+                }
+
+            AccountView()
+                .tabItem {
+                    Image(systemName: "person.crop.circle")
+                    Text("Account")
+                }
+        }
+    }
+}
+
+struct iPadSidebarView: View {
+    var body: some View {
+        NavigationView {
+            List {
+                NavigationLink("Flashcards", destination: DecksView())
+                NavigationLink("Settings", destination: SettingsView())
+                NavigationLink("Account", destination: AccountView())
+            }
+            .listStyle(SidebarListStyle())
+            .navigationTitle("QuickCards")
+        }
+    }
+}
+#endif
+
+struct AccountView: View {
+    var body: some View {
+        Text("Placeholder for Account")
+    }
+}
+
+struct SettingsView: View {
+    var body: some View {
+        Text("Placeholder for Settings")
+    }
+}
+
+struct FolderView: View {
+    let folder: Folder
+    @EnvironmentObject var notesViewModel: NotesViewModel
+    @State private var isHovering = false
+    
+    @State private var folderToRename: Folder?
+    @State private var newFolderName: String = ""
+    @State private var showingRenameView = false
+
+    var body: some View {
+        NavigationLink(destination: EditorView()) {
+            HStack {
+                Image(systemName: "folder")
+                    .foregroundColor(isHovering ? .accentColor : .primary)
+                Text(folder.name ?? "Untitled Folder")
+                    .foregroundColor(isHovering ? .accentColor : .primary)
+            }
+            .padding(.leading, 10)
+        }
+        .onHover { over in
+            isHovering = over
+        }
+        .contextMenu {
+            //Button("Rename") { /* Rename action */ }
+            Button("Rename") {
+                self.newFolderName = folder.name ?? ""
+                self.folderToRename = folder
+                self.showingRenameView = true
+            }
+            Button("Delete") {
+                self.showDeleteConfirmation(for: folder)
+            }
+            Button("Add Subfolder") { /* Add subfolder action */ }
+        }
+        .sheet(isPresented: $showingRenameView) {
+            RenameFolderView(
+                isPresented: $showingRenameView,
+                folderName: $newFolderName,
+                onRename: { newName in
+                    if let folderToRename = folderToRename {
+                        notesViewModel.renameFolder(folderToRename, to: newName)
+                        DispatchQueue.main.async {
+                            notesViewModel.fetchFolders() // Refresh the folders list
+                        }
+                    }
+                }
+            )
+        }
+    }
+    
+    private func showDeleteConfirmation(for folder: Folder) {
+        let alert = NSAlert()
+        alert.messageText = "Delete Folder"
+        alert.informativeText = "Are you sure you want to delete the folder '\(folder.name ?? "Unnamed")' and all its contents?"
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Delete")
+        alert.addButton(withTitle: "Cancel")
+        if alert.runModal() == .alertFirstButtonReturn {
+            notesViewModel.deleteFolder(folder)
+        }
+    }
+}
