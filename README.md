@@ -4,7 +4,7 @@
 ![Image Alt text](/images/example.png "NeoNotes")
 
 ## Overview
-**NeoNotes** is an application designed for both iOS and macOS platforms, aimed at revolutionizing the learning and note-taking experience. Upon completion, NeoNotes will provide a comprehensive toolset for students, educators, and anyone engaged in structured learning or information management.
+**NeoNotes** is an application designed for both iOS and macOS platforms. Upon completion, NeoNotes will provide a comprehensive toolset for students, educators, and anyone engaged in structured learning or information management.
 
 ## Key Features
 - **Multiplatform Compatibility**: Seamlessly operates on iOS and macOS, offering a unified and adaptive user experience across a range of devices.
