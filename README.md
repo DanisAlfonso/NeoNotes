@@ -19,4 +19,4 @@
 - **Device-Specific Optimization**: Features specialized views for iPads and iPhones, guaranteeing an optimized layout and functionality for each device.
 
 ## Vision and Goals
-NeoNotes is being crafted as a learning tool. It's designed to blend the simplicity and effectiveness of flashcards with the depth and flexibility of digital note-taking. Upon its release, NeoNotes aims to set a new standard for digital learning tools, offering a comprehensive, efficient, and enjoyable platform for managing study materials across Apple's ecosystem.
+NeoNotes is being crafted as a learning tool. It's designed to blend the simplicity and effectiveness of flashcards with the flexibility of digital note-taking. Upon its release, NeoNotes is going to offer a comprehensive, efficient, and enjoyable platform for managing study materials across Apple's ecosystem.
