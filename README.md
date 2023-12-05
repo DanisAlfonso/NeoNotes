@@ -1,7 +1,7 @@
 
 # NeoNotes - An Advanced Flashcard and Note-Taking Application
 
-![Image Alt text](/images/example.png "NeoNotes"))
+![Image Alt text](/images/example.png "NeoNotes")
 
 ## Overview
 **NeoNotes** is an application designed for both iOS and macOS platforms, aimed at revolutionizing the learning and note-taking experience. Upon completion, NeoNotes will provide a comprehensive toolset for students, educators, and anyone engaged in structured learning or information management.
